@@ -1,0 +1,22 @@
+{
+  "name": "travel-insuranc-ops-portal",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=@travel/web",
+    "dev:api": "turbo run dev --filter=@travel/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @travel/db prisma generate",
+    "db:migrate": "pnpm --filter @travel/db prisma migrate dev",
+    "db:studio": "pnpm --filter @travel/db prisma studio"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.2",
+    "typescript": "^5.8.3"
+  }
+}
