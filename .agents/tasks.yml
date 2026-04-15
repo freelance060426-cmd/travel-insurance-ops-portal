@@ -1,0 +1,54 @@
+project: travel-insurance-ops-portal
+
+current_focus:
+  - build endorsement screen with real edit flow
+  - refine invoice module screens beyond placeholder
+  - start backend module skeleton for auth, partners, and policies
+  - keep backend integration-ready for later Bajaj work
+
+phase_1:
+  - authentication_and_roles
+  - partner_management
+  - policy_creation
+  - multi_traveller_support
+  - passport_autofill
+  - policy_search_and_detail
+  - endorsement_with_history
+  - policy_pdf_actions
+  - policy_email_send
+  - document_upload_and_download
+  - invoice_module
+  - dashboard
+  - minimal_reports
+
+phase_2:
+  - bajaj_plan_and_premium_fetch
+  - bajaj_policy_issuance
+  - bajaj_document_fetch
+  - bajaj_sync_logs
+
+completed:
+  - repo_agent_structure
+  - repo_readme
+  - monorepo_scaffold
+  - local_postgres_port_conflict_fix
+  - frontend_app_shell
+  - dashboard_demo_screen
+  - policy_list_demo_screen
+  - create_policy_form_demo
+  - policy_detail_demo_screen
+  - endorsement_route_placeholder
+  - invoice_list_placeholder_screen
+  - frontend_demo_qa_pass
+  - favicon_and_mobile_layout_polish
+
+open_items:
+  - final_manual_policy_field_list
+  - detailed_invoice_fields_if_more_than_basic
+  - final_policy_pdf_source_priority
+  - bajaj_credentials_and_api_docs
+
+frontend_demo_priority:
+  - endorsement_flow
+  - invoice_detail_direction
+  - partner_management_screen
