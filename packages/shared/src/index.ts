@@ -3,8 +3,58 @@ import { z } from "zod";
 export const userRoleSchema = z.enum(["SUPER_ADMIN", "EMPLOYEE"]);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
-export const policyStatusSchema = z.enum(["DRAFT", "ACTIVE", "ENDORSED", "EXPIRED"]);
+export const recordStatusSchema = z.enum(["ACTIVE", "INACTIVE"]);
+export type RecordStatus = z.infer<typeof recordStatusSchema>;
+
+export const policyStatusSchema = z.enum([
+  "DRAFT",
+  "ACTIVE",
+  "ENDORSED",
+  "EXPIRED",
+]);
 export type PolicyStatus = z.infer<typeof policyStatusSchema>;
 
-export const invoiceStatusSchema = z.enum(["DRAFT", "ISSUED"]);
+export const invoiceStatusSchema = z.enum(["DRAFT", "ISSUED", "READY", "SENT"]);
 export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+
+export const policyCreateSchema = z.object({
+  policyNumber: z.string().min(1),
+  partnerId: z.string().min(1),
+  issueDate: z.string().min(1),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  insurerName: z.string().min(1),
+  productCode: z.string().optional(),
+  primaryTravellerName: z.string().min(1),
+  customerEmail: z.string().email().optional().or(z.literal("")),
+  customerMobile: z.string().optional(),
+  premiumAmount: z.number().nonnegative().optional(),
+});
+
+export type PolicyCreateInput = z.infer<typeof policyCreateSchema>;
+
+export const travellerInputSchema = z.object({
+  travellerName: z.string().min(1),
+  passportNumber: z.string().min(1),
+  ageOrDob: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  mobile: z.string().optional(),
+});
+
+export type TravellerInput = z.infer<typeof travellerInputSchema>;
+
+export const createPolicyRequestSchema = policyCreateSchema.extend({
+  travellers: z.array(travellerInputSchema).min(1),
+});
+
+export type CreatePolicyRequest = z.infer<typeof createPolicyRequestSchema>;
+
+export const partnerCreateSchema = z.object({
+  partnerCode: z.string().min(1),
+  name: z.string().min(1),
+  contactName: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+});
+
+export type PartnerCreateInput = z.infer<typeof partnerCreateSchema>;

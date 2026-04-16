@@ -16,16 +16,115 @@ model User {
   status       String   @default("ACTIVE")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  createdPolicies Policy[] @relation("PolicyCreatedBy")
+  updatedPolicies Policy[] @relation("PolicyUpdatedBy")
 }
 
 model Partner {
+  id            String    @id @default(uuid())
+  partnerCode   String    @unique
+  name          String
+  contactName   String?
+  email         String?
+  phone         String?
+  status        String    @default("ACTIVE")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  policies      Policy[]
+  invoices      Invoice[]
+}
+
+model Policy {
+  id                  String            @id @default(uuid())
+  policyNumber        String            @unique
+  partnerId           String
+  issueDate           DateTime
+  startDate           DateTime
+  endDate             DateTime
+  insurerName         String
+  productCode         String?
+  status              String            @default("DRAFT")
+  primaryTravellerName String
+  customerEmail       String?
+  customerMobile      String?
+  premiumAmount       Decimal?          @db.Decimal(10, 2)
+  createdById         String
+  updatedById         String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  partner             Partner           @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  createdBy           User              @relation("PolicyCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy           User?             @relation("PolicyUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  travellers          PolicyTraveller[]
+  documents           PolicyDocument[]
+  actions             PolicyAction[]
+  invoices            Invoice[]
+
+  @@index([partnerId])
+  @@index([issueDate])
+  @@index([status])
+}
+
+model PolicyTraveller {
+  id             String   @id @default(uuid())
+  policyId       String
+  travellerName  String
+  passportNumber String
+  ageOrDob       String?
+  email          String?
+  mobile         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId])
+  @@index([passportNumber])
+}
+
+model PolicyDocument {
   id          String   @id @default(uuid())
-  partnerCode String   @unique
-  name        String
-  contactName String?
-  email       String?
-  phone       String?
-  status      String   @default("ACTIVE")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  policyId    String
+  fileName    String
+  fileType    String
+  fileUrl     String
+  sourceType  String
+  uploadedBy  String?
+  uploadedAt  DateTime @default(now())
+  policy      Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId])
+}
+
+model PolicyAction {
+  id            String   @id @default(uuid())
+  policyId      String
+  actionType    String
+  actionSummary String
+  beforeJson    Json?
+  afterJson     Json?
+  doneBy        String?
+  doneAt        DateTime @default(now())
+  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId])
+  @@index([actionType])
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  policyId      String?
+  partnerId     String
+  invoiceDate   DateTime
+  amount        Decimal  @db.Decimal(10, 2)
+  status        String   @default("DRAFT")
+  pdfUrl        String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  partner       Partner  @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  policy        Policy?  @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  @@index([policyId])
+  @@index([partnerId])
+  @@index([invoiceDate])
 }

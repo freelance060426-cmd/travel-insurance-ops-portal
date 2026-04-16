@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "dotenv": "^16.5.0",
     "@nestjs/common": "^11.0.20",
     "@nestjs/core": "^11.0.20",
     "@nestjs/platform-express": "^11.0.20",
+    "@prisma/client": "^6.19.3",
     "@travel/db": "workspace:*",
     "@travel/shared": "workspace:*",
     "reflect-metadata": "^0.2.2",
