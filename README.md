@@ -5,6 +5,7 @@ Internal web portal for managing travel insurance operations.
 This project is being built as a manual-first backoffice system for a travel insurance business. It is intended for internal users such as admin, partner, agent, or employee. It is not a consumer-facing website.
 
 Phase 1 focuses on:
+
 - authentication and role-based access
 - partner management
 - policy creation and search
@@ -45,6 +46,7 @@ travel-insuranc-ops-portal/
 ## Planning Docs
 
 Canonical planning lives in:
+
 - [.agents/plans/plan.md](./.agents/plans/plan.md)
 - [.agents/plans/architecture.md](./.agents/plans/architecture.md)
 - [.agents/tasks.yml](./.agents/tasks.yml)
@@ -105,6 +107,7 @@ npx pnpm dev:api
 ## Current Status
 
 Completed:
+
 - repo scaffolding
 - working monorepo setup
 - frontend app shell
@@ -115,6 +118,7 @@ Completed:
 - invoice list placeholder
 
 Next recommended work:
+
 - endorsement screen
 - invoice screen refinement
 - backend module skeleton for auth, partners, and policies

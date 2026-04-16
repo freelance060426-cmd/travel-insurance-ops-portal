@@ -1,9 +1,9 @@
 project: travel-insurance-ops-portal
 
 current_focus:
-  - build endorsement screen with real edit flow
-  - refine invoice module screens beyond placeholder
-  - start backend module skeleton for auth, partners, and policies
+  - prepare frontend screens needed for next client review
+  - extend backend modules beyond initial partner and policy CRUD
+  - connect remaining frontend screens to live backend data
   - keep backend integration-ready for later Bajaj work
 
 phase_1:
@@ -37,8 +37,14 @@ completed:
   - policy_list_demo_screen
   - create_policy_form_demo
   - policy_detail_demo_screen
-  - endorsement_route_placeholder
-  - invoice_list_placeholder_screen
+  - endorsement_screen_real_flow
+  - invoice_module_refinement
+  - backend_skeleton_auth_partners_policies
+  - local_database_schema_push
+  - backend_skeleton_validation
+  - partner_crud_create_list_detail
+  - policy_crud_create_list_detail
+  - frontend_backend_contract_alignment_policies
   - frontend_demo_qa_pass
   - favicon_and_mobile_layout_polish
 
@@ -49,6 +55,5 @@ open_items:
   - bajaj_credentials_and_api_docs
 
 frontend_demo_priority:
-  - endorsement_flow
-  - invoice_detail_direction
   - partner_management_screen
+  - backend_contract_alignment
