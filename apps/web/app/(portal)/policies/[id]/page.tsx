@@ -1,6 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { fetchPolicyById } from "@/lib/api";
 import { getPolicyById } from "@/lib/mock-data";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+}
+
+function formatTravelWindow(startDate: string, endDate: string) {
+  const start = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(startDate));
+  const end = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(endDate));
+  return `${start} - ${end}`;
+}
 
 export default async function PolicyDetailPage({
   params,
@@ -8,7 +25,46 @@ export default async function PolicyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const policy = getPolicyById(id);
+  let policy = null;
+
+  try {
+    const apiPolicy = await fetchPolicyById(id);
+    policy = {
+      id: apiPolicy.id,
+      policyNumber: apiPolicy.policyNumber,
+      traveller: apiPolicy.primaryTravellerName,
+      passport: apiPolicy.travellers[0]?.passportNumber ?? "N/A",
+      partner: apiPolicy.partner.name,
+      issueDate: formatDate(apiPolicy.issueDate),
+      travelWindow: formatTravelWindow(apiPolicy.startDate, apiPolicy.endDate),
+      startDate: formatDate(apiPolicy.startDate),
+      endDate: formatDate(apiPolicy.endDate),
+      status: apiPolicy.status,
+      premium:
+        apiPolicy.premiumAmount !== null &&
+        apiPolicy.premiumAmount !== undefined
+          ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
+          : "₹ 0",
+      documents:
+        apiPolicy.documents?.map((document) => ({
+          label: document.fileName || "Stored document",
+          status: document.sourceType || "Uploaded",
+        })) ?? [],
+      travellers: apiPolicy.travellers.map((traveller) => ({
+        name: traveller.travellerName,
+        passport: traveller.passportNumber,
+        ageOrDob: traveller.ageOrDob ?? "N/A",
+        plan: "Prime",
+        premium:
+          apiPolicy.premiumAmount !== null &&
+          apiPolicy.premiumAmount !== undefined
+            ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
+            : "₹ 0",
+      })),
+    };
+  } catch {
+    policy = getPolicyById(id);
+  }
 
   if (!policy) {
     notFound();
@@ -26,10 +82,15 @@ export default async function PolicyDetailPage({
         </div>
 
         <div className="hero-panel__meta">
-          <span className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}>
+          <span
+            className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}
+          >
             {policy.status}
           </span>
-          <Link className="primary-button" href={`/policies/${policy.id}/endorse`}>
+          <Link
+            className="primary-button"
+            href={`/policies/${policy.id}/endorse`}
+          >
             Endorse policy
           </Link>
         </div>

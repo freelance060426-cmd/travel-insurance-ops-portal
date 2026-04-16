@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { planOptions, partners, passportLookupRecords } from "@/lib/mock-data";
+import { useRouter } from "next/navigation";
+import type { ApiPartner } from "@/lib/api";
+import { createPolicy } from "@/lib/api";
+import {
+  planOptions,
+  partners as fallbackPartners,
+  passportLookupRecords,
+} from "@/lib/mock-data";
 
 type TravellerDraft = {
   id: string;
@@ -25,27 +32,51 @@ const initialTraveller = (): TravellerDraft => ({
   matched: false,
 });
 
-export function CreatePolicyForm() {
+export function CreatePolicyForm({
+  initialPartners,
+}: {
+  initialPartners: ApiPartner[];
+}) {
+  const router = useRouter();
+  const partnerOptions =
+    initialPartners.length > 0 ? initialPartners : fallbackPartners;
   const [policyNumber, setPolicyNumber] = useState("IC260001");
-  const [partnerId, setPartnerId] = useState(partners[0]?.id ?? "");
+  const [partnerId, setPartnerId] = useState(partnerOptions[0]?.id ?? "");
   const [issueDate, setIssueDate] = useState("2026-04-15");
   const [startDate, setStartDate] = useState("2026-04-20");
   const [endDate, setEndDate] = useState("2026-05-20");
-  const [travellers, setTravellers] = useState<TravellerDraft[]>([initialTraveller()]);
+  const [travellers, setTravellers] = useState<TravellerDraft[]>([
+    initialTraveller(),
+  ]);
   const [lastLookupMessage, setLastLookupMessage] = useState(
     "Enter a passport number to reuse previous traveller details when available.",
   );
+  const [submitState, setSubmitState] = useState<{
+    status: "idle" | "saving" | "success" | "error";
+    message: string;
+  }>({
+    status: "idle",
+    message: "",
+  });
 
   const totalPremium = useMemo(() => {
     return travellers.reduce((sum, traveller) => {
-      const matchedPlan = planOptions.find((plan) => plan.id === traveller.planId);
+      const matchedPlan = planOptions.find(
+        (plan) => plan.id === traveller.planId,
+      );
       return sum + (matchedPlan?.premium ?? 0);
     }, 0);
   }, [travellers]);
 
-  const selectedPartner = partners.find((partner) => partner.id === partnerId);
+  const selectedPartner = partnerOptions.find(
+    (partner) => partner.id === partnerId,
+  );
 
-  function updateTraveller(id: string, field: keyof TravellerDraft, value: string | boolean) {
+  function updateTraveller(
+    id: string,
+    field: keyof TravellerDraft,
+    value: string | boolean,
+  ) {
     setTravellers((current) =>
       current.map((traveller) =>
         traveller.id === id ? { ...traveller, [field]: value } : traveller,
@@ -58,20 +89,27 @@ export function CreatePolicyForm() {
   }
 
   function removeTraveller(id: string) {
-    setTravellers((current) => (current.length === 1 ? current : current.filter((item) => item.id !== id)));
+    setTravellers((current) =>
+      current.length === 1 ? current : current.filter((item) => item.id !== id),
+    );
   }
 
   function lookupPassport(id: string, passport: string) {
     const normalized = passport.trim().toUpperCase();
     if (!normalized) {
-      setLastLookupMessage("Passport lookup skipped because the field is empty.");
+      setLastLookupMessage(
+        "Passport lookup skipped because the field is empty.",
+      );
       return;
     }
 
-    const match = passportLookupRecords[normalized as keyof typeof passportLookupRecords];
+    const match =
+      passportLookupRecords[normalized as keyof typeof passportLookupRecords];
     if (!match) {
       updateTraveller(id, "matched", false);
-      setLastLookupMessage(`No existing traveller found for passport ${normalized}. Manual entry continues.`);
+      setLastLookupMessage(
+        `No existing traveller found for passport ${normalized}. Manual entry continues.`,
+      );
       return;
     }
 
@@ -91,7 +129,61 @@ export function CreatePolicyForm() {
       ),
     );
 
-    setLastLookupMessage(`Autofill applied for ${match.name}. User can still edit any field manually.`);
+    setLastLookupMessage(
+      `Autofill applied for ${match.name}. User can still edit any field manually.`,
+    );
+  }
+
+  async function handleSaveDraft() {
+    if (!partnerId) {
+      setSubmitState({
+        status: "error",
+        message: "Select a partner before saving the policy.",
+      });
+      return;
+    }
+
+    setSubmitState({
+      status: "saving",
+      message: "Saving draft policy...",
+    });
+
+    try {
+      const payload = {
+        policyNumber,
+        partnerId,
+        issueDate,
+        startDate,
+        endDate,
+        insurerName: "Bajaj Allianz",
+        primaryTravellerName: travellers[0]?.name || "Primary traveller",
+        customerEmail: travellers[0]?.email || "",
+        customerMobile: travellers[0]?.mobile || "",
+        premiumAmount: totalPremium,
+        travellers: travellers.map((traveller) => ({
+          travellerName: traveller.name || "Unnamed traveller",
+          passportNumber: traveller.passport || "UNKNOWN",
+          ageOrDob: traveller.ageOrDob,
+          email: traveller.email,
+          mobile: traveller.mobile,
+        })),
+      };
+
+      const created = await createPolicy(payload);
+      setSubmitState({
+        status: "success",
+        message: `Policy ${created.policyNumber} saved successfully.`,
+      });
+      router.push(`/policies/${created.id}`);
+    } catch (error) {
+      setSubmitState({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to save draft policy.",
+      });
+    }
   }
 
   return (
@@ -100,10 +192,15 @@ export function CreatePolicyForm() {
         <p className="portal-eyebrow">CREATE POLICY</p>
         <h1 className="page-title">Manual-first policy creation flow</h1>
         <p className="page-subtitle">
-          This form demonstrates the phase 1 workflow: flexible policy number, partner selection,
-          travel dates, multi-traveller entry, and passport-based autofill without forcing email or
-          mobile as mandatory.
+          This form demonstrates the phase 1 workflow: flexible policy number,
+          partner selection, travel dates, multi-traveller entry, and
+          passport-based autofill without forcing email or mobile as mandatory.
         </p>
+        {submitState.status !== "idle" ? (
+          <div className={`submit-banner submit-${submitState.status}`}>
+            {submitState.message}
+          </div>
+        ) : null}
       </section>
 
       <div className="form-layout">
@@ -118,12 +215,18 @@ export function CreatePolicyForm() {
           <div className="form-grid form-grid--policy-header">
             <label>
               <span>Policy Number</span>
-              <input value={policyNumber} onChange={(event) => setPolicyNumber(event.target.value)} />
+              <input
+                value={policyNumber}
+                onChange={(event) => setPolicyNumber(event.target.value)}
+              />
             </label>
             <label>
               <span>Partner</span>
-              <select value={partnerId} onChange={(event) => setPartnerId(event.target.value)}>
-                {partners.map((partner) => (
+              <select
+                value={partnerId}
+                onChange={(event) => setPartnerId(event.target.value)}
+              >
+                {partnerOptions.map((partner) => (
                   <option key={partner.id} value={partner.id}>
                     {partner.name}
                   </option>
@@ -132,15 +235,27 @@ export function CreatePolicyForm() {
             </label>
             <label>
               <span>Issue Date</span>
-              <input type="date" value={issueDate} onChange={(event) => setIssueDate(event.target.value)} />
+              <input
+                type="date"
+                value={issueDate}
+                onChange={(event) => setIssueDate(event.target.value)}
+              />
             </label>
             <label>
               <span>Travel Start</span>
-              <input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+              />
             </label>
             <label>
               <span>Travel End</span>
-              <input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+              />
             </label>
           </div>
         </section>
@@ -173,7 +288,9 @@ export function CreatePolicyForm() {
       </div>
 
       {travellers.map((traveller, index) => {
-        const selectedPlan = planOptions.find((plan) => plan.id === traveller.planId);
+        const selectedPlan = planOptions.find(
+          (plan) => plan.id === traveller.planId,
+        );
 
         return (
           <section key={traveller.id} className="content-card">
@@ -184,7 +301,11 @@ export function CreatePolicyForm() {
               </div>
 
               {travellers.length > 1 ? (
-                <button className="ghost-button" type="button" onClick={() => removeTraveller(traveller.id)}>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => removeTraveller(traveller.id)}
+                >
                   Remove traveller
                 </button>
               ) : null}
@@ -197,13 +318,23 @@ export function CreatePolicyForm() {
                   <input
                     value={traveller.passport}
                     placeholder="Enter passport number"
-                    onChange={(event) => updateTraveller(traveller.id, "passport", event.target.value.toUpperCase())}
-                    onBlur={(event) => lookupPassport(traveller.id, event.target.value)}
+                    onChange={(event) =>
+                      updateTraveller(
+                        traveller.id,
+                        "passport",
+                        event.target.value.toUpperCase(),
+                      )
+                    }
+                    onBlur={(event) =>
+                      lookupPassport(traveller.id, event.target.value)
+                    }
                   />
                   <button
                     className="ghost-button"
                     type="button"
-                    onClick={() => lookupPassport(traveller.id, traveller.passport)}
+                    onClick={() =>
+                      lookupPassport(traveller.id, traveller.passport)
+                    }
                   >
                     Autofill
                   </button>
@@ -214,7 +345,9 @@ export function CreatePolicyForm() {
                 <span>Traveller Name</span>
                 <input
                   value={traveller.name}
-                  onChange={(event) => updateTraveller(traveller.id, "name", event.target.value)}
+                  onChange={(event) =>
+                    updateTraveller(traveller.id, "name", event.target.value)
+                  }
                 />
               </label>
 
@@ -222,7 +355,13 @@ export function CreatePolicyForm() {
                 <span>Date of birth / age</span>
                 <input
                   value={traveller.ageOrDob}
-                  onChange={(event) => updateTraveller(traveller.id, "ageOrDob", event.target.value)}
+                  onChange={(event) =>
+                    updateTraveller(
+                      traveller.id,
+                      "ageOrDob",
+                      event.target.value,
+                    )
+                  }
                 />
               </label>
 
@@ -230,7 +369,9 @@ export function CreatePolicyForm() {
                 <span>Email (optional)</span>
                 <input
                   value={traveller.email}
-                  onChange={(event) => updateTraveller(traveller.id, "email", event.target.value)}
+                  onChange={(event) =>
+                    updateTraveller(traveller.id, "email", event.target.value)
+                  }
                 />
               </label>
 
@@ -238,7 +379,9 @@ export function CreatePolicyForm() {
                 <span>Mobile (optional)</span>
                 <input
                   value={traveller.mobile}
-                  onChange={(event) => updateTraveller(traveller.id, "mobile", event.target.value)}
+                  onChange={(event) =>
+                    updateTraveller(traveller.id, "mobile", event.target.value)
+                  }
                 />
               </label>
 
@@ -246,7 +389,9 @@ export function CreatePolicyForm() {
                 <span>Plan</span>
                 <select
                   value={traveller.planId}
-                  onChange={(event) => updateTraveller(traveller.id, "planId", event.target.value)}
+                  onChange={(event) =>
+                    updateTraveller(traveller.id, "planId", event.target.value)
+                  }
                 >
                   {planOptions.map((plan) => (
                     <option key={plan.id} value={plan.id}>
@@ -258,11 +403,16 @@ export function CreatePolicyForm() {
             </div>
 
             <div className="traveller-footer">
-              <span className={`status-pill ${traveller.matched ? "status-active" : "status-draft"}`}>
-                {traveller.matched ? "Autofilled from passport history" : "Manual entry"}
+              <span
+                className={`status-pill ${traveller.matched ? "status-active" : "status-draft"}`}
+              >
+                {traveller.matched
+                  ? "Autofilled from passport history"
+                  : "Manual entry"}
               </span>
               <strong>
-                {selectedPlan?.name ?? "Plan"} · ₹ {selectedPlan?.premium.toLocaleString("en-IN") ?? "0"}
+                {selectedPlan?.name ?? "Plan"} · ₹{" "}
+                {selectedPlan?.premium.toLocaleString("en-IN") ?? "0"}
               </strong>
             </div>
           </section>
@@ -273,8 +423,12 @@ export function CreatePolicyForm() {
         <button className="ghost-button" type="button" onClick={addTraveller}>
           Add traveller
         </button>
-        <button className="primary-button" type="button">
-          Save draft policy
+        <button
+          className="primary-button"
+          type="button"
+          onClick={handleSaveDraft}
+        >
+          {submitState.status === "saving" ? "Saving..." : "Save draft policy"}
         </button>
       </div>
     </div>

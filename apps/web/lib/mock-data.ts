@@ -152,6 +152,49 @@ export const policyRows = [
   },
 ];
 
+export const invoiceRows = [
+  {
+    id: "inv-1",
+    invoiceNumber: "INV-10401537",
+    policyNumber: "IC259490",
+    partner: "Tourist Muse",
+    invoiceDate: "2026-04-03",
+    amount: "₹ 20,766",
+    status: "Ready",
+    note: "Linked to active policy and PDF is ready for download.",
+  },
+  {
+    id: "inv-2",
+    invoiceNumber: "INV-10400601",
+    policyNumber: "IC258648",
+    partner: "WIC KB 14",
+    invoiceDate: "2026-04-03",
+    amount: "₹ 1,097",
+    status: "Ready",
+    note: "Invoice generated successfully and queued for customer share.",
+  },
+  {
+    id: "inv-3",
+    invoiceNumber: "INV-10400600",
+    policyNumber: "IC258646",
+    partner: "WIC KB 14",
+    invoiceDate: "2026-04-03",
+    amount: "₹ 1,097",
+    status: "Sent",
+    note: "Invoice has already been shared and archived in the invoice list.",
+  },
+  {
+    id: "inv-4",
+    invoiceNumber: "INV-10400599",
+    policyNumber: "IC258644",
+    partner: "WIC KB 14",
+    invoiceDate: "2026-04-03",
+    amount: "₹ 1,097",
+    status: "Draft",
+    note: "Waiting for final endorsement confirmation before invoice issue.",
+  },
+];
+
 export const policyDetailMap = {
   "1": {
     documents: [
@@ -214,10 +257,10 @@ export function getPolicyById(id: string) {
 
   return {
     ...policy,
-    documents: policyDetailMap[id as keyof typeof policyDetailMap]?.documents ?? [
-      { label: "Policy PDF", status: "Pending" },
-    ],
-    travellers: policyDetailMap[id as keyof typeof policyDetailMap]?.travellers ?? [
+    documents: policyDetailMap[id as keyof typeof policyDetailMap]
+      ?.documents ?? [{ label: "Policy PDF", status: "Pending" }],
+    travellers: policyDetailMap[id as keyof typeof policyDetailMap]
+      ?.travellers ?? [
       {
         name: policy.traveller,
         passport: policy.passport,
@@ -227,4 +270,10 @@ export function getPolicyById(id: string) {
       },
     ],
   };
+}
+
+export type ReturnTypeGetPolicy = NonNullable<ReturnType<typeof getPolicyById>>;
+
+export function getInvoiceById(id: string) {
+  return invoiceRows.find((invoice) => invoice.id === id) ?? null;
 }

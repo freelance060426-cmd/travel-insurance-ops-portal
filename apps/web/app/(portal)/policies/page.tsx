@@ -1,7 +1,48 @@
 import Link from "next/link";
+import { fetchPolicies } from "@/lib/api";
 import { policyRows } from "@/lib/mock-data";
 
-export default function PoliciesPage() {
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+}
+
+function formatTravelWindow(startDate: string, endDate: string) {
+  const start = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(startDate));
+  const end = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(endDate));
+  return `${start} - ${end}`;
+}
+
+export default async function PoliciesPage() {
+  let rows = policyRows;
+
+  try {
+    const policies = await fetchPolicies();
+    rows = policies.map((policy) => ({
+      id: policy.id,
+      policyNumber: policy.policyNumber,
+      traveller: policy.primaryTravellerName,
+      passport: policy.travellers[0]?.passportNumber ?? "N/A",
+      partner: policy.partner.name,
+      issueDate: formatDate(policy.issueDate),
+      travelWindow: formatTravelWindow(policy.startDate, policy.endDate),
+      startDate: formatDate(policy.startDate),
+      endDate: formatDate(policy.endDate),
+      status: policy.status,
+      premium:
+        policy.premiumAmount !== null && policy.premiumAmount !== undefined
+          ? `₹ ${Number(policy.premiumAmount).toLocaleString("en-IN")}`
+          : "₹ 0",
+    }));
+  } catch {
+    rows = policyRows;
+  }
+
   return (
     <div className="page-stack">
       <section className="content-card">
@@ -78,10 +119,13 @@ export default function PoliciesPage() {
               </tr>
             </thead>
             <tbody>
-              {policyRows.map((policy) => (
+              {rows.map((policy) => (
                 <tr key={policy.id}>
                   <td>
-                    <Link href={`/policies/${policy.id}`} className="table-link">
+                    <Link
+                      href={`/policies/${policy.id}`}
+                      className="table-link"
+                    >
                       {policy.policyNumber}
                     </Link>
                   </td>
@@ -91,7 +135,9 @@ export default function PoliciesPage() {
                   <td>{policy.issueDate}</td>
                   <td>{policy.travelWindow}</td>
                   <td>
-                    <span className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <span
+                      className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
                       {policy.status}
                     </span>
                   </td>

@@ -1,27 +1,139 @@
+import Link from "next/link";
+import { invoiceRows } from "@/lib/mock-data";
+
 export default function InvoicesPage() {
+  const totalInvoices = invoiceRows.length;
+  const readyInvoices = invoiceRows.filter(
+    (invoice) => invoice.status === "Ready",
+  ).length;
+  const draftInvoices = invoiceRows.filter(
+    (invoice) => invoice.status === "Draft",
+  ).length;
+
   return (
     <div className="page-stack">
       <section className="content-card">
-        <p className="portal-eyebrow">INVOICES</p>
-        <h1 className="page-title">Central invoice module</h1>
-        <p className="page-subtitle">
-          Phase 1 will include a separate invoice list with create, search, and download flow. This
-          page is intentionally simple for the first frontend milestone.
-        </p>
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">INVOICES</p>
+            <h1 className="page-title">Central invoice module</h1>
+            <p className="page-subtitle">
+              Phase 1 invoice flow stays simple: create, list, search, open, and
+              download linked invoice records without turning the product into a
+              full finance system.
+            </p>
+          </div>
 
-        <div className="partner-stats">
+          <Link className="primary-button" href="/invoices/new">
+            Create Invoice
+          </Link>
+        </div>
+
+        <div className="metric-grid metric-grid--compact">
+          <article className="metric-card tone-teal">
+            <p>Total invoices</p>
+            <strong>{totalInvoices}</strong>
+            <span>Across all linked policies</span>
+          </article>
+          <article className="metric-card tone-blue">
+            <p>Ready for download</p>
+            <strong>{readyInvoices}</strong>
+            <span>PDF available</span>
+          </article>
+          <article className="metric-card tone-amber">
+            <p>Draft invoices</p>
+            <strong>{draftInvoices}</strong>
+            <span>Still waiting for final approval</span>
+          </article>
+        </div>
+      </section>
+
+      <section className="content-card">
+        <div className="section-heading">
           <div>
-            <span>Total invoices</span>
-            <strong>178</strong>
+            <p className="portal-eyebrow">INVOICE SEARCH</p>
+            <h3>List and review invoices</h3>
           </div>
-          <div>
-            <span>Ready for download</span>
-            <strong>155</strong>
-          </div>
-          <div>
-            <span>Draft invoices</span>
-            <strong>23</strong>
-          </div>
+        </div>
+
+        <div className="filter-grid">
+          <label>
+            <span>Invoice Number</span>
+            <input placeholder="Search by invoice number" />
+          </label>
+          <label>
+            <span>Policy Number</span>
+            <input placeholder="Search by linked policy" />
+          </label>
+          <label>
+            <span>Partner</span>
+            <select defaultValue="All partners">
+              <option>All partners</option>
+              <option>Tourist Muse</option>
+              <option>WIC KB 14</option>
+              <option>Urbane Travel LLP</option>
+            </select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select defaultValue="Any status">
+              <option>Any status</option>
+              <option>Ready</option>
+              <option>Draft</option>
+              <option>Sent</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section className="content-card">
+        <div className="table-shell">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Invoice No.</th>
+                <th>Policy No.</th>
+                <th>Partner</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoiceRows.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td>
+                    <Link
+                      href={`/invoices/${invoice.id}`}
+                      className="table-link"
+                    >
+                      {invoice.invoiceNumber}
+                    </Link>
+                  </td>
+                  <td>{invoice.policyNumber}</td>
+                  <td>{invoice.partner}</td>
+                  <td>{invoice.invoiceDate}</td>
+                  <td>{invoice.amount}</td>
+                  <td>
+                    <span
+                      className={`status-pill status-${invoice.status.toLowerCase()}`}
+                    >
+                      {invoice.status}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      href={`/invoices/${invoice.id}`}
+                      className="table-link"
+                    >
+                      Open
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
