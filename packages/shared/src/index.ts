@@ -82,3 +82,11 @@ export const createInvoiceSchema = z.object({
 });
 
 export type CreateInvoiceRequest = z.infer<typeof createInvoiceSchema>;
+
+export const sendPolicyEmailSchema = z.object({
+  recipientEmail: z.string().email(),
+  subject: z.string().min(1).max(160).optional(),
+  message: z.string().max(2000).optional(),
+});
+
+export type SendPolicyEmailRequest = z.infer<typeof sendPolicyEmailSchema>;

@@ -10,19 +10,23 @@ import { resolve } from "node:path";
 import {
   createPolicyRequestSchema,
   endorsePolicyRequestSchema,
+  sendPolicyEmailSchema,
 } from "@travel/shared";
 import { PrismaService } from "../../common/database/prisma.service";
+import { policyPdfRoot, uploadsRoot } from "../../common/runtime-paths";
+import { EmailService } from "../email/email.service";
 import type { CreatePolicyDto } from "./dto/create-policy.dto";
 import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
+import type { SendPolicyEmailDto } from "./dto/send-policy-email.dto";
 
 @Injectable()
 export class PoliciesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
-  private readonly pdfDirectory = resolve(
-    process.cwd(),
-    "../../uploads/pdfs/policies",
-  );
+  private readonly pdfDirectory = policyPdfRoot;
 
   private ensurePdfDirectory() {
     if (!existsSync(this.pdfDirectory)) {
@@ -49,6 +53,10 @@ export class PoliciesService {
         documents: true,
         actions: true,
         invoices: true,
+        emailLogs: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
     });
 
@@ -337,5 +345,122 @@ export class PoliciesService {
         uploadedBy: "system@travel-ops.local",
       },
     });
+  }
+
+  async sendPolicyEmail(
+    id: string,
+    input: SendPolicyEmailDto,
+    sentBy: string | null,
+  ) {
+    const parsed = sendPolicyEmailSchema.parse(input);
+
+    const policy = await this.prisma.policy.findUnique({
+      where: { id },
+      include: {
+        partner: true,
+        travellers: true,
+      },
+    });
+
+    if (!policy) {
+      throw new NotFoundException("Policy not found");
+    }
+
+    const pdfDocument = await this.getOrGeneratePdf(id);
+    const subject = parsed.subject?.trim() || `Policy ${policy.policyNumber}`;
+    const text = [
+      parsed.message?.trim() ||
+        `Please find attached the policy PDF for ${policy.policyNumber}.`,
+      "",
+      `Policy Number: ${policy.policyNumber}`,
+      `Partner: ${policy.partner.name}`,
+      `Primary Traveller: ${policy.primaryTravellerName}`,
+      `Travel Window: ${policy.startDate.toISOString().slice(0, 10)} to ${policy.endDate.toISOString().slice(0, 10)}`,
+    ].join("\n");
+
+    const attachmentPath = resolve(
+      uploadsRoot,
+      pdfDocument.fileUrl.replace(/^\/uploads\//, ""),
+    );
+
+    try {
+      await this.emailService.send({
+        to: parsed.recipientEmail,
+        subject,
+        text,
+        attachments: [
+          {
+            filename: pdfDocument.fileName,
+            path: attachmentPath,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+
+      const log = await this.prisma.emailLog.create({
+        data: {
+          policyId: id,
+          recipientEmail: parsed.recipientEmail,
+          subject,
+          message: parsed.message?.trim() || null,
+          provider: this.emailService.getProviderLabel(),
+          status: "SENT",
+          sentBy,
+          sentAt: new Date(),
+        },
+      });
+
+      await this.prisma.policyAction.create({
+        data: {
+          policyId: id,
+          actionType: "SEND_EMAIL",
+          actionSummary: `Policy emailed to ${parsed.recipientEmail}`,
+          doneBy: sentBy,
+          afterJson: {
+            recipientEmail: parsed.recipientEmail,
+            subject,
+            emailLogId: log.id,
+          },
+        },
+      });
+
+      return {
+        ok: true,
+        log,
+      };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Email sending failed";
+
+      const log = await this.prisma.emailLog.create({
+        data: {
+          policyId: id,
+          recipientEmail: parsed.recipientEmail,
+          subject,
+          message: parsed.message?.trim() || null,
+          provider: this.emailService.getProviderLabel(),
+          status: "FAILED",
+          errorMessage: message,
+          sentBy,
+        },
+      });
+
+      await this.prisma.policyAction.create({
+        data: {
+          policyId: id,
+          actionType: "SEND_EMAIL_FAILED",
+          actionSummary: `Policy email failed for ${parsed.recipientEmail}`,
+          doneBy: sentBy,
+          afterJson: {
+            recipientEmail: parsed.recipientEmail,
+            subject,
+            error: message,
+            emailLogId: log.id,
+          },
+        },
+      });
+
+      throw error;
+    }
   }
 }

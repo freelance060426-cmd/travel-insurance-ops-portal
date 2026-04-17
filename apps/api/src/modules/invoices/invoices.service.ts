@@ -5,16 +5,14 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createInvoiceSchema } from "@travel/shared";
 import { PrismaService } from "../../common/database/prisma.service";
+import { invoicePdfRoot } from "../../common/runtime-paths";
 import type { CreateInvoiceDto } from "./dto/create-invoice.dto";
 
 @Injectable()
 export class InvoicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private readonly pdfDirectory = resolve(
-    process.cwd(),
-    "../../uploads/pdfs/invoices",
-  );
+  private readonly pdfDirectory = invoicePdfRoot;
 
   private ensurePdfDirectory() {
     if (!existsSync(this.pdfDirectory)) {

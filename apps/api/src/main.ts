@@ -2,24 +2,35 @@ import { config as loadEnv } from "dotenv";
 import { existsSync, mkdirSync } from "node:fs";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
-import { resolve } from "node:path";
 import { AppModule } from "./app.module";
+import { repoEnvPath, uploadsRoot } from "./common/runtime-paths";
 
 async function bootstrap() {
-  loadEnv({ path: resolve(process.cwd(), "../../.env") });
+  loadEnv({ path: repoEnvPath });
   loadEnv();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix("api");
-  const uploadsPath = resolve(process.cwd(), "../../uploads");
-  if (!existsSync(uploadsPath)) {
-    mkdirSync(uploadsPath, { recursive: true });
+  if (!existsSync(uploadsRoot)) {
+    mkdirSync(uploadsRoot, { recursive: true });
   }
   app.enableCors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`), false);
+    },
     credentials: true,
   });
-  app.useStaticAssets(uploadsPath, {
+  app.useStaticAssets(uploadsRoot, {
     prefix: "/uploads/",
   });
 

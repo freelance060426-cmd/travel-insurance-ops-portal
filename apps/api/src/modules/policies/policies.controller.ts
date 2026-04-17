@@ -14,14 +14,15 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { existsSync, mkdirSync } from "node:fs";
 import { extname, resolve } from "node:path";
+import { policyUploadsRoot } from "../../common/runtime-paths";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { PoliciesService } from "./policies.service";
 import type { CreatePolicyDto } from "./dto/create-policy.dto";
 import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
+import type { SendPolicyEmailDto } from "./dto/send-policy-email.dto";
 
-const uploadsRoot = resolve(process.cwd(), "../../uploads/policies");
-if (!existsSync(uploadsRoot)) {
-  mkdirSync(uploadsRoot, { recursive: true });
+if (!existsSync(policyUploadsRoot)) {
+  mkdirSync(policyUploadsRoot, { recursive: true });
 }
 
 @Controller("policies")
@@ -57,7 +58,7 @@ export class PoliciesController {
           _req: unknown,
           _file: { originalname: string },
           cb: (error: Error | null, destination: string) => void,
-        ) => cb(null, uploadsRoot),
+        ) => cb(null, policyUploadsRoot),
         filename: (
           _req: unknown,
           file: { originalname: string },
@@ -86,5 +87,18 @@ export class PoliciesController {
   @Post(":id/pdf/regenerate")
   regeneratePdf(@Param("id") id: string) {
     return this.policiesService.getOrGeneratePdf(id, true);
+  }
+
+  @Post(":id/email")
+  sendPolicyEmail(
+    @Param("id") id: string,
+    @Body() body: SendPolicyEmailDto,
+    @Req() request: { user?: { email?: string } },
+  ) {
+    return this.policiesService.sendPolicyEmail(
+      id,
+      body,
+      request.user?.email || null,
+    );
   }
 }

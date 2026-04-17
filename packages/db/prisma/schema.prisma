@@ -59,6 +59,7 @@ model Policy {
   documents           PolicyDocument[]
   actions             PolicyAction[]
   invoices            Invoice[]
+  emailLogs           EmailLog[]
 
   @@index([partnerId])
   @@index([issueDate])
@@ -126,8 +127,31 @@ model Invoice {
   createdAt     DateTime @default(now())
   partner       Partner  @relation(fields: [partnerId], references: [id], onDelete: Restrict)
   policy        Policy?  @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  emailLogs     EmailLog[]
 
   @@index([policyId])
   @@index([partnerId])
   @@index([invoiceDate])
+}
+
+model EmailLog {
+  id             String   @id @default(uuid())
+  policyId       String?
+  invoiceId      String?
+  recipientEmail String
+  subject        String
+  message        String?
+  provider       String
+  status         String
+  errorMessage   String?
+  sentBy         String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+  policy         Policy?  @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  invoice        Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([policyId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([createdAt])
 }
