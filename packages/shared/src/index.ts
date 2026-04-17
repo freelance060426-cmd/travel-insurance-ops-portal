@@ -70,3 +70,15 @@ export const endorsePolicyRequestSchema = z.object({
 });
 
 export type EndorsePolicyRequest = z.infer<typeof endorsePolicyRequestSchema>;
+
+export const createInvoiceSchema = z.object({
+  invoiceNumber: z.string().min(1),
+  policyId: z.string().optional(),
+  partnerId: z.string().min(1),
+  invoiceDate: z.string().min(1),
+  amount: z.number().nonnegative(),
+  status: invoiceStatusSchema,
+  note: z.string().optional(),
+});
+
+export type CreateInvoiceRequest = z.infer<typeof createInvoiceSchema>;

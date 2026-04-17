@@ -122,6 +122,7 @@ model Invoice {
   status        String   @default("DRAFT")
   pdfUrl        String?
   createdBy     String?
+  note          String?
   createdAt     DateTime @default(now())
   partner       Partner  @relation(fields: [partnerId], references: [id], onDelete: Restrict)
   policy        Policy?  @relation(fields: [policyId], references: [id], onDelete: SetNull)
