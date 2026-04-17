@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PolicyDocumentsManager } from "@/components/forms/policy-documents-manager";
+import { PolicyEmailActions } from "@/components/forms/policy-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchPolicyById } from "@/lib/api";
 import { getPolicyById } from "@/lib/mock-data";
@@ -55,6 +56,8 @@ export default async function PolicyDetailPage({
           status: document.sourceType || "Uploaded",
           url: document.fileUrl,
         })) ?? [],
+      customerEmail: apiPolicy.customerEmail ?? "",
+      emailLogs: apiPolicy.emailLogs ?? [],
       travellers: apiPolicy.travellers.map((traveller) => ({
         name: traveller.travellerName,
         passport: traveller.passportNumber,
@@ -71,7 +74,14 @@ export default async function PolicyDetailPage({
       })),
     };
   } catch {
-    policy = getPolicyById(id);
+    const fallbackPolicy = getPolicyById(id);
+    policy = fallbackPolicy
+      ? {
+          ...fallbackPolicy,
+          customerEmail: "",
+          emailLogs: [],
+        }
+      : null;
   }
 
   if (!policy) {
@@ -133,20 +143,24 @@ export default async function PolicyDetailPage({
           </div>
         </section>
 
-        <section className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">PDF & EMAIL</p>
-              <h3>Manual customer actions</h3>
-            </div>
+      <section className="content-card">
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">PDF & EMAIL</p>
+            <h3>Manual customer actions</h3>
           </div>
+        </div>
 
-          <PdfActions entityType="policy" entityId={policy.id} />
-          <div className="action-tile" style={{ marginTop: 14 }}>
-            <span>Email</span>
-            <strong>Send from portal with manual recipient entry</strong>
-          </div>
-        </section>
+        <PdfActions entityType="policy" entityId={policy.id} />
+        <div style={{ marginTop: 14 }}>
+          <PolicyEmailActions
+            policyId={policy.id}
+            policyNumber={policy.policyNumber}
+            initialRecipient={policy.customerEmail}
+            initialLogs={policy.emailLogs}
+          />
+        </div>
+      </section>
       </div>
 
       <section className="content-card">

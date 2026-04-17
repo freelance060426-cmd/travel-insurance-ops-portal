@@ -35,6 +35,16 @@ export type ApiPolicyAction = {
   doneAt: string;
 };
 
+export type ApiEmailLog = {
+  id: string;
+  recipientEmail: string;
+  subject: string;
+  status: string;
+  errorMessage?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+};
+
 export type ApiPolicy = {
   id: string;
   policyNumber: string;
@@ -51,6 +61,7 @@ export type ApiPolicy = {
   travellers: ApiPolicyTraveller[];
   documents?: ApiPolicyDocument[];
   actions?: ApiPolicyAction[];
+  emailLogs?: ApiEmailLog[];
   invoices?: unknown[];
 };
 
@@ -246,6 +257,25 @@ export async function regenerateInvoicePdf(invoiceId: string, token?: string) {
   return fetchJson<{ fileUrl: string; fileName: string }>(
     `/api/invoices/${invoiceId}/pdf/regenerate`,
     { method: "POST" },
+    token,
+  );
+}
+
+export async function sendPolicyEmail(
+  policyId: string,
+  payload: {
+    recipientEmail: string;
+    subject?: string;
+    message?: string;
+  },
+  token?: string,
+) {
+  return fetchJson<{ ok: true; log: ApiEmailLog }>(
+    `/api/policies/${policyId}/email`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
     token,
   );
 }
