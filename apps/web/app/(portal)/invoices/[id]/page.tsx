@@ -1,5 +1,10 @@
 import { notFound } from "next/navigation";
+import { fetchInvoiceById } from "@/lib/api";
 import { getInvoiceById } from "@/lib/mock-data";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+}
 
 export default async function InvoiceDetailPage({
   params,
@@ -7,7 +12,25 @@ export default async function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const invoice = getInvoiceById(id);
+  let invoice = null;
+
+  try {
+    const apiInvoice = await fetchInvoiceById(id);
+    invoice = {
+      id: apiInvoice.id,
+      invoiceNumber: apiInvoice.invoiceNumber,
+      policyNumber: apiInvoice.policy?.policyNumber || "—",
+      partner: apiInvoice.partner.name,
+      invoiceDate: formatDate(apiInvoice.invoiceDate),
+      amount: `₹ ${Number(apiInvoice.amount).toLocaleString("en-IN")}`,
+      status:
+        apiInvoice.status.charAt(0) +
+        apiInvoice.status.slice(1).toLowerCase(),
+      note: apiInvoice.note || "No internal note recorded.",
+    };
+  } catch {
+    invoice = getInvoiceById(id);
+  }
 
   if (!invoice) {
     notFound();

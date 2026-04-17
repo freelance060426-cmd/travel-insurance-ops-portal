@@ -54,6 +54,20 @@ export type ApiPolicy = {
   invoices?: unknown[];
 };
 
+export type ApiInvoice = {
+  id: string;
+  invoiceNumber: string;
+  policyId?: string | null;
+  partnerId: string;
+  invoiceDate: string;
+  amount: string | number;
+  status: string;
+  pdfUrl?: string | null;
+  note?: string | null;
+  partner: ApiPartner;
+  policy?: Pick<ApiPolicy, "id" | "policyNumber" | "primaryTravellerName"> | null;
+};
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -102,6 +116,21 @@ export async function createPolicy(payload: Record<string, unknown>) {
 export async function endorsePolicy(id: string, payload: Record<string, unknown>) {
   return fetchJson<ApiPolicy>(`/api/policies/${id}/endorse`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchInvoices() {
+  return fetchJson<ApiInvoice[]>("/api/invoices");
+}
+
+export async function fetchInvoiceById(id: string) {
+  return fetchJson<ApiInvoice>(`/api/invoices/${id}`);
+}
+
+export async function createInvoice(payload: Record<string, unknown>) {
+  return fetchJson<ApiInvoice>("/api/invoices", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { endorsePolicy } from "@/lib/api";
-import type { ReturnTypeGetPolicy } from "@/lib/mock-data";
 
 type EndorseTravellerDraft = {
   id: string;
@@ -16,7 +15,24 @@ type EndorseTravellerDraft = {
 
 type PlanName = "Prime" | "Ace" | "Elite";
 
-export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
+type EndorsePolicyViewModel = {
+  id: string;
+  policyNumber: string;
+  partner: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  travellers: ReadonlyArray<{
+    name: string;
+    passport: string;
+    ageOrDob: string;
+    plan: string;
+    premium: string;
+  }>;
+};
+
+export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }) {
   const router = useRouter();
   const [startDate, setStartDate] = useState(policy.startDate);
   const [endDate, setEndDate] = useState(policy.endDate);

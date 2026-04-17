@@ -85,6 +85,15 @@ cp .env.example .env
 
 Local PostgreSQL for this project uses port `5433` to avoid conflicts with any existing local Postgres running on `5432`.
 
+Local authentication defaults:
+
+```env
+DEFAULT_ADMIN_EMAIL=admin@travel-ops.local
+DEFAULT_ADMIN_PASSWORD=admin123
+```
+
+These defaults are for local development only.
+
 ### 4. Generate Prisma client
 
 ```bash

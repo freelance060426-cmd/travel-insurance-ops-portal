@@ -1,12 +1,36 @@
 import Link from "next/link";
+import { fetchInvoices } from "@/lib/api";
 import { invoiceRows } from "@/lib/mock-data";
 
-export default function InvoicesPage() {
-  const totalInvoices = invoiceRows.length;
-  const readyInvoices = invoiceRows.filter(
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+}
+
+export default async function InvoicesPage() {
+  let rows = invoiceRows;
+
+  try {
+    const invoices = await fetchInvoices();
+    rows = invoices.map((invoice) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      policyNumber: invoice.policy?.policyNumber || "—",
+      partner: invoice.partner.name,
+      invoiceDate: formatDate(invoice.invoiceDate),
+      amount: `₹ ${Number(invoice.amount).toLocaleString("en-IN")}`,
+      status:
+        invoice.status.charAt(0) + invoice.status.slice(1).toLowerCase(),
+      note: invoice.note || "",
+    }));
+  } catch {
+    rows = invoiceRows;
+  }
+
+  const totalInvoices = rows.length;
+  const readyInvoices = rows.filter(
     (invoice) => invoice.status === "Ready",
   ).length;
-  const draftInvoices = invoiceRows.filter(
+  const draftInvoices = rows.filter(
     (invoice) => invoice.status === "Draft",
   ).length;
 
@@ -101,7 +125,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody>
-              {invoiceRows.map((invoice) => (
+              {rows.map((invoice) => (
                 <tr key={invoice.id}>
                   <td>
                     <Link
