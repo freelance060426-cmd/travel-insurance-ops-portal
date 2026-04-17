@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { fetchInvoices } from "@/lib/api";
 import { invoiceRows } from "@/lib/mock-data";
+import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
 }
 
 export default async function InvoicesPage() {
+  const token = await getServerAuthToken();
   let rows = invoiceRows;
 
   try {
-    const invoices = await fetchInvoices();
+    const invoices = await fetchInvoices(token ?? undefined);
     rows = invoices.map((invoice) => ({
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fetchPolicies } from "@/lib/api";
 import { policyRows } from "@/lib/mock-data";
+import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
@@ -19,10 +20,11 @@ function formatTravelWindow(startDate: string, endDate: string) {
 }
 
 export default async function PoliciesPage() {
+  const token = await getServerAuthToken();
   let rows = policyRows;
 
   try {
-    const policies = await fetchPolicies();
+    const policies = await fetchPolicies(token ?? undefined);
     rows = policies.map((policy) => ({
       id: policy.id,
       policyNumber: policy.policyNumber,

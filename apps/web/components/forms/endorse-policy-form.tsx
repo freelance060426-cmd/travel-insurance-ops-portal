@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { endorsePolicy } from "@/lib/api";
+import { useAuth } from "@/components/providers/auth-provider";
 
 type EndorseTravellerDraft = {
   id: string;
@@ -34,6 +35,7 @@ type EndorsePolicyViewModel = {
 
 export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }) {
   const router = useRouter();
+  const { token } = useAuth();
   const [startDate, setStartDate] = useState(policy.startDate);
   const [endDate, setEndDate] = useState(policy.endDate);
   const initialPlan = (policy.travellers[0]?.plan ?? "Prime") as PlanName;
@@ -103,7 +105,7 @@ export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }
           premiumAmount:
             Number(traveller.premium.replace(/[^\d.]/g, "")) || 0,
         })),
-      });
+      }, token ?? undefined);
 
       setSubmitState({
         status: "success",

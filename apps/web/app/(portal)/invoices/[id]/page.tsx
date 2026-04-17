@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { fetchInvoiceById } from "@/lib/api";
 import { getInvoiceById } from "@/lib/mock-data";
+import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
@@ -12,10 +13,11 @@ export default async function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const token = await getServerAuthToken();
   let invoice = null;
 
   try {
-    const apiInvoice = await fetchInvoiceById(id);
+    const apiInvoice = await fetchInvoiceById(id, token ?? undefined);
     invoice = {
       id: apiInvoice.id,
       invoiceNumber: apiInvoice.invoiceNumber,

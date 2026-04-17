@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { fetchPolicyById } from "@/lib/api";
 import { EndorsePolicyForm } from "@/components/forms/endorse-policy-form";
 import { getPolicyById } from "@/lib/mock-data";
+import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
@@ -13,10 +14,11 @@ export default async function EndorsePolicyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const token = await getServerAuthToken();
   let policy = null;
 
   try {
-    const apiPolicy = await fetchPolicyById(id);
+    const apiPolicy = await fetchPolicyById(id, token ?? undefined);
     policy = {
       id: apiPolicy.id,
       policyNumber: apiPolicy.policyNumber,

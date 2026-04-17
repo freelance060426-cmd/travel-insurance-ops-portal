@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApiPartner } from "@/lib/api";
 import { createPartner } from "@/lib/api";
+import { useAuth } from "@/components/providers/auth-provider";
 
 type PartnerDraft = {
   partnerCode: string;
@@ -23,6 +24,7 @@ const initialDraft: PartnerDraft = {
 
 export function PartnerManagement({ initialPartners }: { initialPartners: ApiPartner[] }) {
   const router = useRouter();
+  const { token } = useAuth();
   const [draft, setDraft] = useState<PartnerDraft>({
     ...initialDraft,
     partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
@@ -48,7 +50,7 @@ export function PartnerManagement({ initialPartners }: { initialPartners: ApiPar
     });
 
     try {
-      const created = await createPartner(draft);
+      const created = await createPartner(draft, token ?? undefined);
       setSubmitState({
         status: "success",
         message: `Partner ${created.name} created successfully.`,

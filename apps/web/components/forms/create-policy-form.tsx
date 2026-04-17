@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApiPartner } from "@/lib/api";
 import { createPolicy } from "@/lib/api";
+import { useAuth } from "@/components/providers/auth-provider";
 import {
   planOptions,
   partners as fallbackPartners,
@@ -38,6 +39,7 @@ export function CreatePolicyForm({
   initialPartners: ApiPartner[];
 }) {
   const router = useRouter();
+  const { token } = useAuth();
   const partnerOptions =
     initialPartners.length > 0 ? initialPartners : fallbackPartners;
   const [policyNumber, setPolicyNumber] = useState("IC260001");
@@ -169,7 +171,7 @@ export function CreatePolicyForm({
         })),
       };
 
-      const created = await createPolicy(payload);
+      const created = await createPolicy(payload, token ?? undefined);
       setSubmitState({
         status: "success",
         message: `Policy ${created.policyNumber} saved successfully.`,

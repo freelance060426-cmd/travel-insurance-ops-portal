@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApiPartner, ApiPolicy } from "@/lib/api";
 import { createInvoice } from "@/lib/api";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export function CreateInvoiceForm({
   initialPartners,
@@ -13,6 +14,7 @@ export function CreateInvoiceForm({
   initialPolicies: ApiPolicy[];
 }) {
   const router = useRouter();
+  const { token } = useAuth();
   const [invoiceNumber, setInvoiceNumber] = useState(
     `INV-${String(Date.now()).slice(-8)}`,
   );
@@ -56,7 +58,7 @@ export function CreateInvoiceForm({
         amount: Number(amount),
         status,
         note,
-      });
+      }, token ?? undefined);
 
       setSubmitState({
         status: "success",

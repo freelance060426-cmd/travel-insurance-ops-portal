@@ -2,8 +2,10 @@ import { fetchPartners } from "@/lib/api";
 import type { ApiPartner } from "@/lib/api";
 import { partners as fallbackPartners } from "@/lib/mock-data";
 import { PartnerManagement } from "@/components/forms/partner-management";
+import { getServerAuthToken } from "@/lib/server-auth";
 
 export default async function PartnersPage() {
+  const token = await getServerAuthToken();
   let partners: ApiPartner[] = fallbackPartners.map((partner) => ({
     id: partner.id,
     partnerCode: partner.code,
@@ -15,7 +17,7 @@ export default async function PartnersPage() {
   }));
 
   try {
-    partners = await fetchPartners();
+    partners = await fetchPartners(token ?? undefined);
   } catch {
     partners = partners;
   }
