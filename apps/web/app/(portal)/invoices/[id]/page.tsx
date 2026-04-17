@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchInvoiceById } from "@/lib/api";
 import { getInvoiceById } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
@@ -56,9 +57,6 @@ export default async function InvoiceDetailPage({
           >
             {invoice.status}
           </span>
-          <button className="primary-button" type="button">
-            Download PDF
-          </button>
         </div>
       </section>
 
@@ -99,15 +97,10 @@ export default async function InvoiceDetailPage({
             </div>
           </div>
 
-          <div className="action-tile-grid">
-            <div className="action-tile">
-              <span>PDF</span>
-              <strong>Preview and download invoice PDF</strong>
-            </div>
-            <div className="action-tile">
-              <span>Linked policy</span>
-              <strong>Trace invoice back to its policy record</strong>
-            </div>
+          <PdfActions entityType="invoice" entityId={invoice.id} />
+          <div className="action-tile" style={{ marginTop: 14 }}>
+            <span>Linked policy</span>
+            <strong>Trace invoice back to its policy record</strong>
           </div>
         </section>
       </div>

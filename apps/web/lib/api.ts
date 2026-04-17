@@ -192,3 +192,60 @@ export async function createInvoice(
     token,
   );
 }
+
+export async function uploadPolicyDocument(
+  policyId: string,
+  file: File,
+  token?: string,
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}/api/policies/${policyId}/documents`, {
+    method: "POST",
+    headers: {
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `API request failed for /api/policies/${policyId}/documents: ${response.status}`,
+    );
+  }
+
+  return response.json();
+}
+
+export async function getPolicyPdf(policyId: string, token?: string) {
+  return fetchJson<{ fileUrl: string; fileName: string }>(
+    `/api/policies/${policyId}/pdf`,
+    undefined,
+    token,
+  );
+}
+
+export async function regeneratePolicyPdf(policyId: string, token?: string) {
+  return fetchJson<{ fileUrl: string; fileName: string }>(
+    `/api/policies/${policyId}/pdf/regenerate`,
+    { method: "POST" },
+    token,
+  );
+}
+
+export async function getInvoicePdf(invoiceId: string, token?: string) {
+  return fetchJson<{ fileUrl: string; fileName: string }>(
+    `/api/invoices/${invoiceId}/pdf`,
+    undefined,
+    token,
+  );
+}
+
+export async function regenerateInvoicePdf(invoiceId: string, token?: string) {
+  return fetchJson<{ fileUrl: string; fileName: string }>(
+    `/api/invoices/${invoiceId}/pdf/regenerate`,
+    { method: "POST" },
+    token,
+  );
+}

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PolicyDocumentsManager } from "@/components/forms/policy-documents-manager";
+import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchPolicyById } from "@/lib/api";
 import { getPolicyById } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
@@ -51,6 +53,7 @@ export default async function PolicyDetailPage({
         apiPolicy.documents?.map((document) => ({
           label: document.fileName || "Stored document",
           status: document.sourceType || "Uploaded",
+          url: document.fileUrl,
         })) ?? [],
       travellers: apiPolicy.travellers.map((traveller) => ({
         name: traveller.travellerName,
@@ -138,15 +141,10 @@ export default async function PolicyDetailPage({
             </div>
           </div>
 
-          <div className="action-tile-grid">
-            <div className="action-tile">
-              <span>Policy PDF</span>
-              <strong>View / regenerate / download</strong>
-            </div>
-            <div className="action-tile">
-              <span>Email</span>
-              <strong>Send from portal with manual recipient entry</strong>
-            </div>
+          <PdfActions entityType="policy" entityId={policy.id} />
+          <div className="action-tile" style={{ marginTop: 14 }}>
+            <span>Email</span>
+            <strong>Send from portal with manual recipient entry</strong>
           </div>
         </section>
       </div>
@@ -193,19 +191,10 @@ export default async function PolicyDetailPage({
           </div>
         </div>
 
-        <div className="document-list">
-          {policy.documents.map((document) => (
-            <div key={document.label} className="document-row">
-              <div>
-                <strong>{document.label}</strong>
-                <p>{document.status}</p>
-              </div>
-              <button className="ghost-button" type="button">
-                Open
-              </button>
-            </div>
-          ))}
-        </div>
+        <PolicyDocumentsManager
+          policyId={policy.id}
+          initialDocuments={policy.documents}
+        />
       </section>
     </div>
   );
