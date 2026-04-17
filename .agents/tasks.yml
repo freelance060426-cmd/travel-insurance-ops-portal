@@ -2,10 +2,9 @@ project: travel-insurance-ops-portal
 
 current_focus:
   - extend backend modules beyond initial partner and policy CRUD
-  - implement document, PDF, and email backend flows
-  - implement real PDF generation and retrieval flow
   - implement real email sending flow
   - keep backend integration-ready for later Bajaj work
+  - prepare the next clean checkpoint commit
 
 phase_1:
   - authentication_and_roles
@@ -56,6 +55,7 @@ completed:
   - auth_hydration_polish
   - document_upload_storage_backend
   - document_upload_storage_frontend
+  - real_pdf_generation_and_retrieval
   - frontend_demo_qa_pass
   - full_browser_flow_validation
   - full_product_http_e2e_validation
