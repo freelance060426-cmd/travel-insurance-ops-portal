@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { FileCheck2, FilePlus2, LayoutGrid, Receipt, Search, Users2 } from "lucide-react";
+import { useAuth } from "@/components/providers/auth-provider";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
@@ -15,6 +17,14 @@ const navigation = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  function handleLogout() {
+    signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="portal-shell">
@@ -65,11 +75,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="portal-topbar__status">
-            <div className="portal-chip">
+          <div className="portal-chip">
               <FileCheck2 size={15} />
               <span>Policy PDFs enabled</span>
             </div>
-            <div className="portal-avatar">SA</div>
+            <div className="portal-user-meta">
+              <div className="portal-user-meta__text">
+                <strong>{user?.name ?? "User"}</strong>
+                <span>{user?.role ?? "Unknown role"}</span>
+              </div>
+              <div className="portal-avatar">
+                {(user?.name ?? "U").slice(0, 2).toUpperCase()}
+              </div>
+              <button className="ghost-button" type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 

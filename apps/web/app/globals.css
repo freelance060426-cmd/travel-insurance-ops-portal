@@ -162,6 +162,27 @@ select {
   gap: 12px;
 }
 
+.portal-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-user-meta__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.portal-user-meta__text strong {
+  font-size: 14px;
+}
+
+.portal-user-meta__text span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .portal-chip {
   display: inline-flex;
   align-items: center;
@@ -646,6 +667,72 @@ select {
   color: var(--muted);
 }
 
+.upload-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.file-input {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  padding: 12px 14px;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(29, 78, 216, 0.16), transparent 32%),
+    linear-gradient(180deg, #eff7f7 0%, #f8fafc 100%);
+}
+
+.login-card {
+  width: min(480px, 100%);
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.08);
+  padding: 28px;
+}
+
+.login-card h1 {
+  margin: 8px 0 0;
+  font-size: 34px;
+  line-height: 1.08;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-form span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.login-form input {
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 0 14px;
+  background: white;
+}
+
 .invoice-notes {
   display: flex;
   flex-direction: column;
@@ -719,6 +806,15 @@ select {
     justify-content: space-between;
   }
 
+  .portal-user-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .portal-user-meta__text {
+    align-items: flex-start;
+  }
+
   .hero-panel,
   .section-heading {
     flex-direction: column;
@@ -751,7 +847,8 @@ select {
 
   .traveller-footer,
   .action-row,
-  .document-row {
+  .document-row,
+  .upload-row {
     flex-direction: column;
     align-items: flex-start;
   }

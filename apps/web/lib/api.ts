@@ -68,13 +68,31 @@ export type ApiInvoice = {
   policy?: Pick<ApiPolicy, "id" | "policyNumber" | "primaryTravellerName"> | null;
 };
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status?: string;
+};
+
+export type LoginResponse = {
+  accessToken: string;
+  user: AuthUser;
+};
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function fetchJson<T>(
+  path: string,
+  init?: RequestInit,
+  token?: string,
+): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}),
     },
     cache: "no-store",
@@ -87,50 +105,90 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function fetchPartners() {
-  return fetchJson<ApiPartner[]>("/api/partners");
-}
-
-export async function createPartner(payload: Record<string, unknown>) {
-  return fetchJson<ApiPartner>("/api/partners", {
+export async function login(payload: { email: string; password: string }) {
+  return fetchJson<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchPolicies() {
-  return fetchJson<ApiPolicy[]>("/api/policies");
+export async function fetchCurrentUser(token: string) {
+  return fetchJson<AuthUser>("/api/auth/me", undefined, token);
 }
 
-export async function fetchPolicyById(id: string) {
-  return fetchJson<ApiPolicy>(`/api/policies/${id}`);
+export async function fetchPartners(token?: string) {
+  return fetchJson<ApiPartner[]>("/api/partners", undefined, token);
 }
 
-export async function createPolicy(payload: Record<string, unknown>) {
-  return fetchJson<ApiPolicy>("/api/policies", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export async function createPartner(
+  payload: Record<string, unknown>,
+  token?: string,
+) {
+  return fetchJson<ApiPartner>(
+    "/api/partners",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
 }
 
-export async function endorsePolicy(id: string, payload: Record<string, unknown>) {
-  return fetchJson<ApiPolicy>(`/api/policies/${id}/endorse`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+export async function fetchPolicies(token?: string) {
+  return fetchJson<ApiPolicy[]>("/api/policies", undefined, token);
 }
 
-export async function fetchInvoices() {
-  return fetchJson<ApiInvoice[]>("/api/invoices");
+export async function fetchPolicyById(id: string, token?: string) {
+  return fetchJson<ApiPolicy>(`/api/policies/${id}`, undefined, token);
 }
 
-export async function fetchInvoiceById(id: string) {
-  return fetchJson<ApiInvoice>(`/api/invoices/${id}`);
+export async function createPolicy(
+  payload: Record<string, unknown>,
+  token?: string,
+) {
+  return fetchJson<ApiPolicy>(
+    "/api/policies",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
 }
 
-export async function createInvoice(payload: Record<string, unknown>) {
-  return fetchJson<ApiInvoice>("/api/invoices", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export async function endorsePolicy(
+  id: string,
+  payload: Record<string, unknown>,
+  token?: string,
+) {
+  return fetchJson<ApiPolicy>(
+    `/api/policies/${id}/endorse`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
+}
+
+export async function fetchInvoices(token?: string) {
+  return fetchJson<ApiInvoice[]>("/api/invoices", undefined, token);
+}
+
+export async function fetchInvoiceById(id: string, token?: string) {
+  return fetchJson<ApiInvoice>(`/api/invoices/${id}`, undefined, token);
+}
+
+export async function createInvoice(
+  payload: Record<string, unknown>,
+  token?: string,
+) {
+  return fetchJson<ApiInvoice>(
+    "/api/invoices",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
 }
