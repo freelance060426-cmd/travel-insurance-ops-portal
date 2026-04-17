@@ -1,9 +1,31 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import { existsSync, mkdirSync } from "node:fs";
+import { extname, resolve } from "node:path";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { PoliciesService } from "./policies.service";
 import type { CreatePolicyDto } from "./dto/create-policy.dto";
 import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
 
+const uploadsRoot = resolve(process.cwd(), "../../uploads/policies");
+if (!existsSync(uploadsRoot)) {
+  mkdirSync(uploadsRoot, { recursive: true });
+}
+
 @Controller("policies")
+@UseGuards(JwtAuthGuard)
 export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) {}
 
@@ -25,5 +47,34 @@ export class PoliciesController {
   @Patch(":id/endorse")
   endorsePolicy(@Param("id") id: string, @Body() body: EndorsePolicyDto) {
     return this.policiesService.endorse(id, body);
+  }
+
+  @Post(":id/documents")
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: diskStorage({
+        destination: (
+          _req: unknown,
+          _file: { originalname: string },
+          cb: (error: Error | null, destination: string) => void,
+        ) => cb(null, uploadsRoot),
+        filename: (
+          _req: unknown,
+          file: { originalname: string },
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
+          const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `${unique}${extname(file.originalname)}`);
+        },
+      }),
+    }),
+  )
+  uploadDocument(
+    @Param("id") id: string,
+    @UploadedFile()
+    file: { originalname: string; mimetype: string; filename: string },
+    @Req() request: { user?: { email?: string } },
+  ) {
+    return this.policiesService.addDocument(id, file, request.user?.email || null);
   }
 }

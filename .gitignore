@@ -9,4 +9,5 @@ dist
 coverage
 *.log
 *.tsbuildinfo
+uploads
 packages/db/generated

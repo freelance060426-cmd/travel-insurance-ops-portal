@@ -189,4 +189,40 @@ export class PoliciesService {
       },
     });
   }
+
+  async addDocument(
+    policyId: string,
+    file: { originalname: string; mimetype: string; filename: string },
+    uploadedBy: string | null,
+  ) {
+    const policy = await this.prisma.policy.findUnique({
+      where: { id: policyId },
+    });
+
+    if (!policy) {
+      throw new NotFoundException("Policy not found");
+    }
+
+    const document = await this.prisma.policyDocument.create({
+      data: {
+        policyId,
+        fileName: file.originalname,
+        fileType: file.mimetype,
+        fileUrl: `/uploads/policies/${file.filename}`,
+        sourceType: "MANUAL_UPLOAD",
+        uploadedBy,
+      },
+    });
+
+    await this.prisma.policyAction.create({
+      data: {
+        policyId,
+        actionType: "UPLOAD_DOCUMENT",
+        actionSummary: `Document uploaded: ${file.originalname}`,
+        doneBy: uploadedBy,
+      },
+    });
+
+    return document;
+  }
 }
