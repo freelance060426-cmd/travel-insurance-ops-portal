@@ -54,12 +54,15 @@ export default async function PolicyDetailPage({
         name: traveller.travellerName,
         passport: traveller.passportNumber,
         ageOrDob: traveller.ageOrDob ?? "N/A",
-        plan: "Prime",
+        plan: traveller.planName || "Prime",
         premium:
-          apiPolicy.premiumAmount !== null &&
-          apiPolicy.premiumAmount !== undefined
-            ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
-            : "₹ 0",
+          traveller.premiumAmount !== null &&
+          traveller.premiumAmount !== undefined
+            ? `₹ ${Number(traveller.premiumAmount).toLocaleString("en-IN")}`
+            : apiPolicy.premiumAmount !== null &&
+                apiPolicy.premiumAmount !== undefined
+              ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
+              : "₹ 0",
       })),
     };
   } catch {

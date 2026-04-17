@@ -73,6 +73,8 @@ model PolicyTraveller {
   ageOrDob       String?
   email          String?
   mobile         String?
+  planName       String?
+  premiumAmount  Decimal? @db.Decimal(10, 2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)

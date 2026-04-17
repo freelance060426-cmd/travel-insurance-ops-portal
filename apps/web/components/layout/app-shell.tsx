@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { FileCheck2, FilePlus2, LayoutGrid, Receipt, Search } from "lucide-react";
+import { FileCheck2, FilePlus2, LayoutGrid, Receipt, Search, Users2 } from "lucide-react";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { href: "/partners", label: "Partners", icon: Users2 },
   { href: "/policies", label: "Policy Search", icon: Search },
   { href: "/policies/new", label: "Create Policy", icon: FilePlus2 },
   { href: "/invoices", label: "Invoices", icon: Receipt },

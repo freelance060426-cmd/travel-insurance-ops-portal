@@ -15,6 +15,8 @@ export type ApiPolicyTraveller = {
   ageOrDob?: string | null;
   email?: string | null;
   mobile?: string | null;
+  planName?: string | null;
+  premiumAmount?: string | number | null;
 };
 
 export type ApiPolicyDocument = {
@@ -75,6 +77,13 @@ export async function fetchPartners() {
   return fetchJson<ApiPartner[]>("/api/partners");
 }
 
+export async function createPartner(payload: Record<string, unknown>) {
+  return fetchJson<ApiPartner>("/api/partners", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchPolicies() {
   return fetchJson<ApiPolicy[]>("/api/policies");
 }
@@ -86,6 +95,13 @@ export async function fetchPolicyById(id: string) {
 export async function createPolicy(payload: Record<string, unknown>) {
   return fetchJson<ApiPolicy>("/api/policies", {
     method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function endorsePolicy(id: string, payload: Record<string, unknown>) {
+  return fetchJson<ApiPolicy>(`/api/policies/${id}/endorse`, {
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 }

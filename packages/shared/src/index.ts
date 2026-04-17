@@ -39,6 +39,8 @@ export const travellerInputSchema = z.object({
   ageOrDob: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   mobile: z.string().optional(),
+  planName: z.string().optional(),
+  premiumAmount: z.number().nonnegative().optional(),
 });
 
 export type TravellerInput = z.infer<typeof travellerInputSchema>;
@@ -58,3 +60,13 @@ export const partnerCreateSchema = z.object({
 });
 
 export type PartnerCreateInput = z.infer<typeof partnerCreateSchema>;
+
+export const endorsePolicyRequestSchema = z.object({
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  reason: z.string().min(1),
+  preferredPlan: z.string().optional(),
+  travellers: z.array(travellerInputSchema).min(1),
+});
+
+export type EndorsePolicyRequest = z.infer<typeof endorsePolicyRequestSchema>;

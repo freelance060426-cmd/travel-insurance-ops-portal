@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { endorsePolicy } from "@/lib/api";
 import type { ReturnTypeGetPolicy } from "@/lib/mock-data";
 
 type EndorseTravellerDraft = {
@@ -15,6 +17,7 @@ type EndorseTravellerDraft = {
 type PlanName = "Prime" | "Ace" | "Elite";
 
 export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
+  const router = useRouter();
   const [startDate, setStartDate] = useState(policy.startDate);
   const [endDate, setEndDate] = useState(policy.endDate);
   const initialPlan = (policy.travellers[0]?.plan ?? "Prime") as PlanName;
@@ -32,6 +35,10 @@ export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
       premium: traveller.premium,
     })),
   );
+  const [submitState, setSubmitState] = useState<{
+    status: "idle" | "saving" | "success" | "error";
+    message: string;
+  }>({ status: "idle", message: "" });
 
   const changeSummary = useMemo(() => {
     return [
@@ -60,6 +67,45 @@ export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
     );
   }
 
+  async function handleSaveEndorsement() {
+    setSubmitState({
+      status: "saving",
+      message: "Saving endorsement...",
+    });
+
+    try {
+      await endorsePolicy(policy.id, {
+        startDate,
+        endDate,
+        reason,
+        preferredPlan: planOverride,
+        travellers: travellers.map((traveller) => ({
+          travellerName: traveller.name,
+          passportNumber: traveller.passport,
+          ageOrDob: traveller.ageOrDob,
+          planName: traveller.plan,
+          premiumAmount:
+            Number(traveller.premium.replace(/[^\d.]/g, "")) || 0,
+        })),
+      });
+
+      setSubmitState({
+        status: "success",
+        message: "Endorsement saved successfully.",
+      });
+      router.push(`/policies/${policy.id}`);
+      router.refresh();
+    } catch (error) {
+      setSubmitState({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to save endorsement.",
+      });
+    }
+  }
+
   return (
     <div className="page-stack">
       <section className="hero-panel">
@@ -71,6 +117,11 @@ export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
             details, keep a change summary, and save endorsement changes without
             mixing in full insurer-side lifecycle complexity yet.
           </p>
+          {submitState.status !== "idle" ? (
+            <div className={`submit-banner submit-${submitState.status}`}>
+              {submitState.message}
+            </div>
+          ) : null}
         </div>
 
         <div className="hero-panel__meta">
@@ -223,8 +274,14 @@ export function EndorsePolicyForm({ policy }: { policy: ReturnTypeGetPolicy }) {
         <button className="ghost-button" type="button">
           Back to detail
         </button>
-        <button className="primary-button" type="button">
-          Save endorsement draft
+        <button
+          className="primary-button"
+          type="button"
+          onClick={handleSaveEndorsement}
+        >
+          {submitState.status === "saving"
+            ? "Saving..."
+            : "Save endorsement draft"}
         </button>
       </div>
     </div>

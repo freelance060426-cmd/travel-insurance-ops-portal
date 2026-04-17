@@ -4,6 +4,8 @@ export type CreatePolicyTravellerDto = {
   ageOrDob?: string;
   email?: string;
   mobile?: string;
+  planName?: string;
+  premiumAmount?: number;
 };
 
 export type CreatePolicyDto = {

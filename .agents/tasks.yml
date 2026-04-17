@@ -1,9 +1,9 @@
 project: travel-insurance-ops-portal
 
 current_focus:
-  - prepare frontend screens needed for next client review
   - extend backend modules beyond initial partner and policy CRUD
   - connect remaining frontend screens to live backend data
+  - implement invoice backend flow
   - keep backend integration-ready for later Bajaj work
 
 phase_1:
@@ -44,7 +44,10 @@ completed:
   - backend_skeleton_validation
   - partner_crud_create_list_detail
   - policy_crud_create_list_detail
+  - partner_management_screen
+  - frontend_backend_contract_alignment_partners
   - frontend_backend_contract_alignment_policies
+  - endorsement_backend_flow
   - frontend_demo_qa_pass
   - favicon_and_mobile_layout_polish
 
@@ -55,5 +58,4 @@ open_items:
   - bajaj_credentials_and_api_docs
 
 frontend_demo_priority:
-  - partner_management_screen
-  - backend_contract_alignment
+  - invoice_backend_alignment
