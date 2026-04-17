@@ -3,6 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { existsSync, mkdirSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import {
   createPolicyRequestSchema,
   endorsePolicyRequestSchema,
@@ -14,6 +18,17 @@ import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
 @Injectable()
 export class PoliciesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly pdfDirectory = resolve(
+    process.cwd(),
+    "../../uploads/pdfs/policies",
+  );
+
+  private ensurePdfDirectory() {
+    if (!existsSync(this.pdfDirectory)) {
+      mkdirSync(this.pdfDirectory, { recursive: true });
+    }
+  }
 
   list() {
     return this.prisma.policy.findMany({
@@ -224,5 +239,103 @@ export class PoliciesService {
     });
 
     return document;
+  }
+
+  async getOrGeneratePdf(id: string, forceRegenerate = false) {
+    const policy = await this.prisma.policy.findUnique({
+      where: { id },
+      include: {
+        partner: true,
+        travellers: true,
+        documents: {
+          where: { sourceType: "GENERATED_PDF" },
+          orderBy: { uploadedAt: "desc" },
+        },
+      },
+    });
+
+    if (!policy) {
+      throw new NotFoundException("Policy not found");
+    }
+
+    if (!forceRegenerate && policy.documents[0]) {
+      return policy.documents[0];
+    }
+
+    this.ensurePdfDirectory();
+
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([595, 842]);
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+    let y = 790;
+    const left = 50;
+
+    page.drawText("Travel Insurance Policy", {
+      x: left,
+      y,
+      size: 22,
+      font: bold,
+      color: rgb(0.06, 0.39, 0.36),
+    });
+
+    y -= 36;
+    const lines = [
+      `Policy Number: ${policy.policyNumber}`,
+      `Partner: ${policy.partner.name}`,
+      `Issue Date: ${policy.issueDate.toISOString().slice(0, 10)}`,
+      `Travel Start: ${policy.startDate.toISOString().slice(0, 10)}`,
+      `Travel End: ${policy.endDate.toISOString().slice(0, 10)}`,
+      `Status: ${policy.status}`,
+      `Primary Traveller: ${policy.primaryTravellerName}`,
+      `Insurer: ${policy.insurerName}`,
+      `Premium Amount: ${policy.premiumAmount?.toString() ?? "N/A"}`,
+      "",
+      "Travellers:",
+      ...policy.travellers.map(
+        (traveller, index) =>
+          `${index + 1}. ${traveller.travellerName} | Passport: ${traveller.passportNumber} | DOB/Age: ${traveller.ageOrDob ?? "N/A"} | Plan: ${traveller.planName ?? "N/A"}`,
+      ),
+    ];
+
+    for (const line of lines) {
+      page.drawText(line, {
+        x: left,
+        y,
+        size: 11,
+        font,
+        color: rgb(0.1, 0.13, 0.18),
+      });
+      y -= 18;
+    }
+
+    const bytes = await pdf.save();
+    const filename = `${policy.policyNumber}-policy.pdf`;
+    const path = resolve(this.pdfDirectory, filename);
+    await writeFile(path, bytes);
+
+    if (policy.documents[0]) {
+      return this.prisma.policyDocument.update({
+        where: { id: policy.documents[0].id },
+        data: {
+          fileName: filename,
+          fileType: "application/pdf",
+          fileUrl: `/uploads/pdfs/policies/${filename}`,
+          uploadedAt: new Date(),
+        },
+      });
+    }
+
+    return this.prisma.policyDocument.create({
+      data: {
+        policyId: policy.id,
+        fileName: filename,
+        fileType: "application/pdf",
+        fileUrl: `/uploads/pdfs/policies/${filename}`,
+        sourceType: "GENERATED_PDF",
+        uploadedBy: "system@travel-ops.local",
+      },
+    });
   }
 }

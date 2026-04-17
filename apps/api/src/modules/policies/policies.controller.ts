@@ -77,4 +77,14 @@ export class PoliciesController {
   ) {
     return this.policiesService.addDocument(id, file, request.user?.email || null);
   }
+
+  @Get(":id/pdf")
+  getOrGeneratePdf(@Param("id") id: string) {
+    return this.policiesService.getOrGeneratePdf(id);
+  }
+
+  @Post(":id/pdf/regenerate")
+  regeneratePdf(@Param("id") id: string) {
+    return this.policiesService.getOrGeneratePdf(id, true);
+  }
 }
