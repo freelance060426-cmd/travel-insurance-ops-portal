@@ -94,6 +94,17 @@ DEFAULT_ADMIN_PASSWORD=admin123
 
 These defaults are for local development only.
 
+Email sending uses SMTP. For a working outbound policy-email flow, configure:
+
+```env
+EMAIL_FROM=noreply@example.com
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=username
+SMTP_PASS=password
+```
+
 ### 4. Generate Prisma client
 
 ```bash
@@ -119,18 +130,21 @@ Completed:
 
 - repo scaffolding
 - working monorepo setup
-- frontend app shell
-- dashboard demo
-- policy search/list demo
-- create policy form demo
-- policy detail demo
-- invoice list placeholder
+- frontend app shell and protected session flow
+- backend authentication with JWT
+- partner create/list flow
+- policy create/list/detail flow
+- endorsement flow with action history
+- invoice create/list/detail flow
+- document upload and storage
+- policy and invoice PDF generation/retrieval
+- policy email sending with SMTP-backed delivery logs
 
 Next recommended work:
 
-- endorsement screen
-- invoice screen refinement
-- backend module skeleton for auth, partners, and policies
+- reports and export backend
+- tighter role-based data visibility
+- final product polish and cleanup
 
 ## Notes
 

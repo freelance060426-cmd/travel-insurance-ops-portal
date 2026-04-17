@@ -1,8 +1,8 @@
 project: travel-insurance-ops-portal
 
 current_focus:
-  - extend backend modules beyond initial partner and policy CRUD
-  - implement real email sending flow
+  - implement reports and export backend flows
+  - tighten role-based data visibility rules
   - keep backend integration-ready for later Bajaj work
   - prepare the next clean checkpoint commit
 
@@ -56,9 +56,12 @@ completed:
   - document_upload_storage_backend
   - document_upload_storage_frontend
   - real_pdf_generation_and_retrieval
+  - real_policy_email_sending_backend
+  - real_policy_email_sending_frontend
   - frontend_demo_qa_pass
   - full_browser_flow_validation
   - full_product_http_e2e_validation
+  - smtp_delivery_validation
   - favicon_and_mobile_layout_polish
 
 open_items:
