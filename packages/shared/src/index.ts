@@ -83,6 +83,17 @@ export const createInvoiceSchema = z.object({
 
 export type CreateInvoiceRequest = z.infer<typeof createInvoiceSchema>;
 
+export const bulkGenerateInvoicesSchema = z.object({
+  policyIds: z.array(z.string().min(1)).min(1),
+  invoiceDate: z.string().min(1).optional(),
+  status: invoiceStatusSchema.optional(),
+  note: z.string().optional(),
+});
+
+export type BulkGenerateInvoicesRequest = z.infer<
+  typeof bulkGenerateInvoicesSchema
+>;
+
 export const sendPolicyEmailSchema = z.object({
   recipientEmail: z.string().email(),
   subject: z.string().min(1).max(160).optional(),
@@ -90,3 +101,11 @@ export const sendPolicyEmailSchema = z.object({
 });
 
 export type SendPolicyEmailRequest = z.infer<typeof sendPolicyEmailSchema>;
+
+export const sendInvoiceEmailSchema = z.object({
+  recipientEmail: z.string().email(),
+  subject: z.string().min(1).max(160).optional(),
+  message: z.string().max(2000).optional(),
+});
+
+export type SendInvoiceEmailRequest = z.infer<typeof sendInvoiceEmailSchema>;
