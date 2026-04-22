@@ -126,25 +126,30 @@ npx pnpm dev:api
 
 ## Current Status
 
+Phase 1 core is functionally complete. The portal supports end-to-end flows for partners, policies, endorsements, invoices, PDFs, and email delivery.
+
 Completed:
 
-- repo scaffolding
-- working monorepo setup
+- repo scaffolding and monorepo setup
 - frontend app shell and protected session flow
 - backend authentication with JWT
 - partner create/list flow
-- policy create/list/detail flow
+- policy create/list/detail flow with multi-traveller and passport autofill
 - endorsement flow with action history
-- invoice create/list/detail flow
+- invoice create/list/detail flow with PDF generation
 - document upload and storage
 - policy and invoice PDF generation/retrieval
 - policy email sending with SMTP-backed delivery logs
+- dashboard with metrics and activity feed
 
-Next recommended work:
+Next recommended work (see [plan.md](./plan.md) for full breakdown):
 
+- invoice email/share to client
+- login page redesign (logo, background, layout)
+- dashboard visual banner
 - reports and export backend
-- tighter role-based data visibility
-- final product polish and cleanup
+- role-based data visibility
+- theme alignment with company branding
 
 ## Notes
 
