@@ -47,13 +47,17 @@ Deliver a production-ready internal portal for policy operations with document, 
 
 6. Invoice module
 - Separate invoice module in the sidebar
-- Create invoice
+- Separate single invoice generation path from eligible policies
+- Bulk invoice generation path that creates one invoice per selected eligible policy
 - List and search invoices
+- Eligible invoice candidates derived from policies without invoices
 - Download invoice PDF
-- Optional link between invoice and policy
+- Send invoice to client from list/detail views
+- Invoice remains linked to policy and partner when generated from eligibility flow
 
 7. Dashboard and reports
 - Dashboard counts for total policies, today, month, and recent activity
+- Branded dashboard hero with travel-focused visual treatment
 - Date-wise policy reporting
 - Partner-wise policy reporting
 - Search/export from listings
@@ -74,6 +78,10 @@ Deliver a production-ready internal portal for policy operations with document, 
 - Policy lifecycle for now is limited to `create` and `endorse`
 - Mobile number and email remain optional on policy creation
 - Manual recipient email entry is allowed when sending policy email
+- Invoice generation eligibility is defined as `policy exists and has no invoice yet`
+- Bulk invoice generation means many invoice records, not a combined invoice
+- Invoice send in phase 1 is single-invoice send only
+- Policy create flow uses `Save Policy`; endorsement flow keeps `Save Endorsement Draft`
 - Reports remain minimal operational reports only
 - Manual field-level policy form finalization is still pending and will be added later
 - Non-admin visibility defaults to assigned or partner-scoped data
@@ -146,6 +154,8 @@ No phase 2 work should block phase 1 architecture or delivery. Bajaj integration
 - Implement login flow
 - Add role-aware route protection
 - Build app shell, sidebar, and base layouts
+- Add brand theme tokens and Cover Edge visual styling
+- Refresh login and dashboard visuals with travel-oriented design
 
 ### Phase 1C - Core policy flow
 
@@ -154,6 +164,7 @@ No phase 2 work should block phase 1 architecture or delivery. Bajaj integration
 - Add passport-based autofill lookup
 - Add duplicate policy-number validation flow
 - Build policy search/list/detail pages
+- Align creation terminology to `Save Policy`
 
 ### Phase 1D - Endorsement and documents
 
@@ -164,7 +175,9 @@ No phase 2 work should block phase 1 architecture or delivery. Bajaj integration
 
 ### Phase 1E - Invoice, dashboard, and reports
 
-- Implement invoice create/list/detail/download
+- Implement invoice eligibility list from policies without invoices
+- Implement single and bulk invoice generation from eligible policies
+- Implement invoice detail/list/download/send
 - Add dashboard summary endpoints and UI
 - Add minimal reports and export support
 - Add automatic expiration handling
@@ -172,6 +185,5 @@ No phase 2 work should block phase 1 architecture or delivery. Bajaj integration
 ## Open Items Still Expected From Client
 
 - Final mandatory field list for policy creation
-- Exact invoice field requirements if more than basic create/list/download is expected
 - Confirmation of PDF source priority for policies that already exist
 - Final Bajaj integration documents and onboarding inputs

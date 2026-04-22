@@ -3,6 +3,7 @@ project: travel-insurance-ops-portal
 current_focus:
   - implement reports and export backend flows
   - tighten role-based data visibility rules
+  - continue final UI and product polish
   - keep backend integration-ready for later Bajaj work
   - prepare the next clean checkpoint commit
 
@@ -20,6 +21,9 @@ phase_1:
   - invoice_module
   - dashboard
   - minimal_reports
+  - branded_login_and_dashboard_refresh
+  - invoice_eligibility_and_bulk_generation
+  - invoice_email_send
 
 phase_2:
   - bajaj_plan_and_premium_fetch
@@ -58,6 +62,16 @@ completed:
   - real_pdf_generation_and_retrieval
   - real_policy_email_sending_backend
   - real_policy_email_sending_frontend
+  - invoice_eligibility_backend_contract
+  - invoice_bulk_generation_backend_contract
+  - invoice_email_sending_backend
+  - invoice_module_generation_workspace
+  - invoice_email_sending_frontend
+  - brand_theme_foundation
+  - login_page_brand_refresh
+  - dashboard_brand_refresh
+  - policy_terminology_cleanup
+  - invoice_workflow_runtime_validation
   - frontend_demo_qa_pass
   - full_browser_flow_validation
   - full_product_http_e2e_validation

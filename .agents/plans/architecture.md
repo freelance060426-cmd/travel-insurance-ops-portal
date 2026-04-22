@@ -114,6 +114,7 @@ The frontend is an internal admin portal for operational users, not a public mar
 - reusable form field layer for policy, traveller, partner, and invoice forms
 - modal or drawer for send-email action
 - preview panel or new-tab document view for PDFs
+- theme-token layer with one active brand theme and one alternate preset kept ready
 
 ## 4. Backend Architecture
 
@@ -182,14 +183,19 @@ The backend owns all business logic, validation, persistence, PDF generation, em
 
 #### email
 - send policy by email
+- send invoice by email
 - manual email recipient handling
 - email logging
 
 #### invoices
 - create invoice
+- fetch eligible policies without invoices
+- generate one invoice from a selected eligible policy
+- bulk-generate one invoice per selected eligible policy
 - list/search invoices
 - link invoice to policy when relevant
 - invoice PDF handling
+- invoice send logging through the shared email log table
 
 #### reports
 - dashboard aggregates
@@ -253,9 +259,12 @@ The backend should expose REST APIs grouped by module.
 - generate/regenerate policy PDF
 - send policy email
 - get invoice PDF
+- send invoice email
 
 #### invoices
 - create invoice
+- fetch invoice-eligible policies
+- bulk-generate invoices from selected policy IDs
 - list invoices
 - get invoice detail
 

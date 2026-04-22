@@ -14,8 +14,10 @@ Phase 1 focuses on:
 - policy detail and endorsement-ready workflow
 - policy PDF actions
 - policy email send from portal
-- invoice module
+- invoice module with eligible-policy generation and bulk generation
+- invoice client-send flow
 - dashboard and minimal reports
+- branded login and dashboard experience
 
 Phase 2 is reserved for Bajaj integration and other insurer-dependent workflows once external documentation, credentials, and onboarding details are available.
 
@@ -141,15 +143,16 @@ Completed:
 - policy and invoice PDF generation/retrieval
 - policy email sending with SMTP-backed delivery logs
 - dashboard with metrics and activity feed
+- invoice eligibility, single generate, and bulk generation flow
+- invoice email sending
+- branded login, dashboard, and theme foundation
+- policy terminology cleanup (`Save Policy`)
 
-Next recommended work (see [plan.md](./plan.md) for full breakdown):
+Next recommended work:
 
-- invoice email/share to client
-- login page redesign (logo, background, layout)
-- dashboard visual banner
 - reports and export backend
 - role-based data visibility
-- theme alignment with company branding
+- final polish and release-style QA
 
 ## Notes
 

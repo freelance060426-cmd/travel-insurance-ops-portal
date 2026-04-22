@@ -1,167 +1,82 @@
-import Link from "next/link";
-import { fetchInvoices } from "@/lib/api";
-import { invoiceRows } from "@/lib/mock-data";
+import { InvoiceManagementWorkspace } from "@/components/forms/invoice-management-workspace";
+import {
+  fetchEligibleInvoicePolicies,
+  fetchInvoices,
+  type ApiEligibleInvoicePolicy,
+  type ApiInvoice,
+} from "@/lib/api";
+import { invoiceRows, policyRows } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+function buildFallbackInvoices(): ApiInvoice[] {
+  return invoiceRows.map((invoice) => ({
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    partnerId: invoice.partner,
+    invoiceDate: invoice.invoiceDate,
+    amount: Number(invoice.amount.replace(/[^\d]/g, "")),
+    status: invoice.status.toUpperCase(),
+    note: invoice.note,
+    pdfUrl: null,
+    partner: {
+      id: invoice.partner,
+      partnerCode: invoice.partner,
+      name: invoice.partner,
+      status: "ACTIVE",
+    },
+    policy: {
+      id: invoice.policyNumber,
+      policyNumber: invoice.policyNumber,
+      primaryTravellerName: "Traveller",
+      customerEmail: null,
+    },
+    emailLogs: [],
+  }));
+}
+
+function buildFallbackEligiblePolicies(): ApiEligibleInvoicePolicy[] {
+  return policyRows
+    .filter((policy) => !invoiceRows.some((invoice) => invoice.policyNumber === policy.policyNumber))
+    .map((policy) => ({
+      id: policy.id,
+      policyNumber: policy.policyNumber,
+      primaryTravellerName: policy.traveller,
+      issueDate: policy.issueDate,
+      startDate: policy.startDate,
+      endDate: policy.endDate,
+      premiumAmount: Number(policy.premium.replace(/[^\d]/g, "")),
+      customerEmail: null,
+      partner: {
+        id: policy.partner,
+        partnerCode: policy.partner,
+        name: policy.partner,
+        status: "ACTIVE",
+      },
+      travellers: [],
+    }));
 }
 
 export default async function InvoicesPage() {
   const token = await getServerAuthToken();
-  let rows = invoiceRows;
+  let invoices: ApiInvoice[] = buildFallbackInvoices();
+  let eligiblePolicies: ApiEligibleInvoicePolicy[] = buildFallbackEligiblePolicies();
 
   try {
-    const invoices = await fetchInvoices(token ?? undefined);
-    rows = invoices.map((invoice) => ({
-      id: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      policyNumber: invoice.policy?.policyNumber || "—",
-      partner: invoice.partner.name,
-      invoiceDate: formatDate(invoice.invoiceDate),
-      amount: `₹ ${Number(invoice.amount).toLocaleString("en-IN")}`,
-      status:
-        invoice.status.charAt(0) + invoice.status.slice(1).toLowerCase(),
-      note: invoice.note || "",
-    }));
+    invoices = await fetchInvoices(token ?? undefined);
   } catch {
-    rows = invoiceRows;
+    invoices = buildFallbackInvoices();
   }
 
-  const totalInvoices = rows.length;
-  const readyInvoices = rows.filter(
-    (invoice) => invoice.status === "Ready",
-  ).length;
-  const draftInvoices = rows.filter(
-    (invoice) => invoice.status === "Draft",
-  ).length;
+  try {
+    eligiblePolicies = await fetchEligibleInvoicePolicies(token ?? undefined);
+  } catch {
+    eligiblePolicies = buildFallbackEligiblePolicies();
+  }
 
   return (
-    <div className="page-stack">
-      <section className="content-card">
-        <div className="section-heading">
-          <div>
-            <p className="portal-eyebrow">INVOICES</p>
-            <h1 className="page-title">Central invoice module</h1>
-            <p className="page-subtitle">
-              Phase 1 invoice flow stays simple: create, list, search, open, and
-              download linked invoice records without turning the product into a
-              full finance system.
-            </p>
-          </div>
-
-          <Link className="primary-button" href="/invoices/new">
-            Create Invoice
-          </Link>
-        </div>
-
-        <div className="metric-grid metric-grid--compact">
-          <article className="metric-card tone-teal">
-            <p>Total invoices</p>
-            <strong>{totalInvoices}</strong>
-            <span>Across all linked policies</span>
-          </article>
-          <article className="metric-card tone-blue">
-            <p>Ready for download</p>
-            <strong>{readyInvoices}</strong>
-            <span>PDF available</span>
-          </article>
-          <article className="metric-card tone-amber">
-            <p>Draft invoices</p>
-            <strong>{draftInvoices}</strong>
-            <span>Still waiting for final approval</span>
-          </article>
-        </div>
-      </section>
-
-      <section className="content-card">
-        <div className="section-heading">
-          <div>
-            <p className="portal-eyebrow">INVOICE SEARCH</p>
-            <h3>List and review invoices</h3>
-          </div>
-        </div>
-
-        <div className="filter-grid">
-          <label>
-            <span>Invoice Number</span>
-            <input placeholder="Search by invoice number" />
-          </label>
-          <label>
-            <span>Policy Number</span>
-            <input placeholder="Search by linked policy" />
-          </label>
-          <label>
-            <span>Partner</span>
-            <select defaultValue="All partners">
-              <option>All partners</option>
-              <option>Tourist Muse</option>
-              <option>WIC KB 14</option>
-              <option>Urbane Travel LLP</option>
-            </select>
-          </label>
-          <label>
-            <span>Status</span>
-            <select defaultValue="Any status">
-              <option>Any status</option>
-              <option>Ready</option>
-              <option>Draft</option>
-              <option>Sent</option>
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <section className="content-card">
-        <div className="table-shell">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Invoice No.</th>
-                <th>Policy No.</th>
-                <th>Partner</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>
-                    <Link
-                      href={`/invoices/${invoice.id}`}
-                      className="table-link"
-                    >
-                      {invoice.invoiceNumber}
-                    </Link>
-                  </td>
-                  <td>{invoice.policyNumber}</td>
-                  <td>{invoice.partner}</td>
-                  <td>{invoice.invoiceDate}</td>
-                  <td>{invoice.amount}</td>
-                  <td>
-                    <span
-                      className={`status-pill status-${invoice.status.toLowerCase()}`}
-                    >
-                      {invoice.status}
-                    </span>
-                  </td>
-                  <td>
-                    <Link
-                      href={`/invoices/${invoice.id}`}
-                      className="table-link"
-                    >
-                      Open
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+    <InvoiceManagementWorkspace
+      initialInvoices={invoices}
+      initialEligiblePolicies={eligiblePolicies}
+    />
   );
 }

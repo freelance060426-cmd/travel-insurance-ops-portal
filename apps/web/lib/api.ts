@@ -75,8 +75,27 @@ export type ApiInvoice = {
   status: string;
   pdfUrl?: string | null;
   note?: string | null;
+  emailLogs?: ApiEmailLog[];
   partner: ApiPartner;
-  policy?: Pick<ApiPolicy, "id" | "policyNumber" | "primaryTravellerName"> | null;
+  policy?:
+    | Pick<
+        ApiPolicy,
+        "id" | "policyNumber" | "primaryTravellerName" | "customerEmail"
+      >
+    | null;
+};
+
+export type ApiEligibleInvoicePolicy = {
+  id: string;
+  policyNumber: string;
+  primaryTravellerName: string;
+  issueDate: string;
+  startDate: string;
+  endDate: string;
+  premiumAmount?: string | number | null;
+  customerEmail?: string | null;
+  partner: ApiPartner;
+  travellers: ApiPolicyTraveller[];
 };
 
 export type AuthUser = {
@@ -190,12 +209,39 @@ export async function fetchInvoiceById(id: string, token?: string) {
   return fetchJson<ApiInvoice>(`/api/invoices/${id}`, undefined, token);
 }
 
+export async function fetchEligibleInvoicePolicies(token?: string) {
+  return fetchJson<ApiEligibleInvoicePolicy[]>(
+    "/api/invoices/eligible-policies",
+    undefined,
+    token,
+  );
+}
+
 export async function createInvoice(
   payload: Record<string, unknown>,
   token?: string,
 ) {
   return fetchJson<ApiInvoice>(
     "/api/invoices",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
+}
+
+export async function bulkGenerateInvoices(
+  payload: {
+    policyIds: string[];
+    invoiceDate?: string;
+    status?: string;
+    note?: string;
+  },
+  token?: string,
+) {
+  return fetchJson<ApiInvoice[]>(
+    "/api/invoices/bulk-generate",
     {
       method: "POST",
       body: JSON.stringify(payload),
@@ -257,6 +303,25 @@ export async function regenerateInvoicePdf(invoiceId: string, token?: string) {
   return fetchJson<{ fileUrl: string; fileName: string }>(
     `/api/invoices/${invoiceId}/pdf/regenerate`,
     { method: "POST" },
+    token,
+  );
+}
+
+export async function sendInvoiceEmail(
+  invoiceId: string,
+  payload: {
+    recipientEmail: string;
+    subject?: string;
+    message?: string;
+  },
+  token?: string,
+) {
+  return fetchJson<{ ok: true; log: ApiEmailLog }>(
+    `/api/invoices/${invoiceId}/email`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
     token,
   );
 }

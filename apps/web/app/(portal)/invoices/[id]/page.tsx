@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { InvoiceEmailActions } from "@/components/forms/invoice-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchInvoiceById } from "@/lib/api";
 import { getInvoiceById } from "@/lib/mock-data";
@@ -30,9 +31,18 @@ export default async function InvoiceDetailPage({
         apiInvoice.status.charAt(0) +
         apiInvoice.status.slice(1).toLowerCase(),
       note: apiInvoice.note || "No internal note recorded.",
+      customerEmail: apiInvoice.policy?.customerEmail || "",
+      emailLogs: apiInvoice.emailLogs || [],
     };
   } catch {
-    invoice = getInvoiceById(id);
+    const fallback = getInvoiceById(id);
+    invoice = fallback
+      ? {
+          ...fallback,
+          customerEmail: "",
+          emailLogs: [],
+        }
+      : null;
   }
 
   if (!invoice) {
@@ -41,7 +51,7 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="page-stack">
-      <section className="hero-panel">
+      <section className="hero-panel hero-panel--brand">
         <div>
           <p className="portal-eyebrow">INVOICE DETAIL</p>
           <h1>{invoice.invoiceNumber}</h1>
@@ -93,14 +103,18 @@ export default async function InvoiceDetailPage({
           <div className="section-heading">
             <div>
               <p className="portal-eyebrow">ACTIONS</p>
-              <h3>Document handling</h3>
+              <h3>PDF and client share</h3>
             </div>
           </div>
 
           <PdfActions entityType="invoice" entityId={invoice.id} />
-          <div className="action-tile" style={{ marginTop: 14 }}>
-            <span>Linked policy</span>
-            <strong>Trace invoice back to its policy record</strong>
+          <div style={{ marginTop: 14 }}>
+            <InvoiceEmailActions
+              invoiceId={invoice.id}
+              invoiceNumber={invoice.invoiceNumber}
+              initialRecipient={invoice.customerEmail}
+              initialLogs={invoice.emailLogs}
+            />
           </div>
         </section>
       </div>

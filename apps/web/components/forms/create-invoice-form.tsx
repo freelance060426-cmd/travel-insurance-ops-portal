@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ApiPartner, ApiPolicy } from "@/lib/api";
+import type { ApiEligibleInvoicePolicy, ApiPartner } from "@/lib/api";
 import { createInvoice } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -11,7 +11,7 @@ export function CreateInvoiceForm({
   initialPolicies,
 }: {
   initialPartners: ApiPartner[];
-  initialPolicies: ApiPolicy[];
+  initialPolicies: ApiEligibleInvoicePolicy[];
 }) {
   const router = useRouter();
   const { token } = useAuth();
@@ -26,7 +26,7 @@ export function CreateInvoiceForm({
   const [amount, setAmount] = useState("20766");
   const [status, setStatus] = useState("READY");
   const [note, setNote] = useState(
-    "Invoice linked to policy record and ready for PDF/download flow.",
+    "Invoice generated from an eligible policy and ready for PDF/download flow.",
   );
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "saving" | "success" | "error";
@@ -44,9 +44,17 @@ export function CreateInvoiceForm({
   );
 
   async function handleCreateInvoice() {
+    if (!policyId) {
+      setSubmitState({
+        status: "error",
+        message: "Select an eligible policy before generating an invoice.",
+      });
+      return;
+    }
+
     setSubmitState({
       status: "saving",
-      message: "Creating invoice...",
+      message: "Generating invoice...",
     });
 
     try {
@@ -62,7 +70,7 @@ export function CreateInvoiceForm({
 
       setSubmitState({
         status: "success",
-        message: `Invoice ${created.invoiceNumber} created successfully.`,
+        message: `Invoice ${created.invoiceNumber} generated successfully.`,
       });
       router.push(`/invoices/${created.id}`);
       router.refresh();
@@ -79,11 +87,10 @@ export function CreateInvoiceForm({
     <div className="page-stack">
       <section className="content-card">
         <p className="portal-eyebrow">CREATE INVOICE</p>
-        <h1 className="page-title">Create invoice</h1>
+        <h1 className="page-title">Generate invoice from eligible policy</h1>
         <p className="page-subtitle">
-          This screen now uses the live backend contract. It links invoice
-          creation to the current policy and partner data already stored in the
-          system.
+          This screen is the separate single-invoice generation path. It only
+          works from policies that do not already have an invoice.
         </p>
         {submitState.status !== "idle" ? (
           <div className={`submit-banner submit-${submitState.status}`}>
@@ -125,6 +132,9 @@ export function CreateInvoiceForm({
                   }
                 }}
               >
+                {initialPolicies.length === 0 ? (
+                  <option value="">No eligible policies available</option>
+                ) : null}
                 {initialPolicies.map((policy) => (
                   <option key={policy.id} value={policy.id}>
                     {policy.policyNumber} - {policy.primaryTravellerName}
@@ -188,7 +198,7 @@ export function CreateInvoiceForm({
           <h3>Expected output</h3>
           <div className="summary-pairs">
             <div>
-              <span>Linked policy</span>
+              <span>Eligible policy</span>
               <strong>{selectedPolicy?.policyNumber ?? "Not selected"}</strong>
             </div>
             <div>
@@ -203,18 +213,18 @@ export function CreateInvoiceForm({
             </div>
             <div>
               <span>PDF action</span>
-              <strong>Generate and download</strong>
+              <strong>Generate, view, and send</strong>
             </div>
           </div>
         </aside>
       </div>
 
       <div className="action-row">
-        <button className="ghost-button" type="button">
-          Save as draft
+        <button className="ghost-button" type="button" onClick={() => router.push("/invoices")}>
+          Back to invoice workspace
         </button>
         <button className="primary-button" type="button" onClick={handleCreateInvoice}>
-          {submitState.status === "saving" ? "Creating..." : "Create invoice"}
+          {submitState.status === "saving" ? "Generating..." : "Generate invoice"}
         </button>
       </div>
     </div>
