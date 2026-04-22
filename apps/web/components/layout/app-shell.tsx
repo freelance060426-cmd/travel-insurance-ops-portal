@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -30,9 +31,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="portal-shell">
       <aside className="portal-sidebar">
         <div className="portal-brand">
-          <div className="portal-brand__badge">TI</div>
+          <Image
+            src="/brand/cover-edge-logo.png"
+            alt="Cover Edge Assist"
+            width={58}
+            height={58}
+            className="portal-brand__logo"
+          />
           <div>
-            <p className="portal-eyebrow">INTERNAL OPS</p>
+            <p className="portal-eyebrow">COVER EDGE OPS</p>
             <h1>Travel Insurance Portal</h1>
           </div>
         </div>
@@ -59,10 +66,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="portal-sidebar__card">
           <p className="portal-eyebrow">PHASE 1</p>
-          <strong>Manual-first</strong>
+          <strong>Manual-first, client-ready</strong>
           <p>
-            Bajaj integration stays open, but the product flow is already shaped for future API
-            plug-in.
+            Brand-aligned operations with invoice generation, PDF delivery, and
+            insurer-ready workflow boundaries.
           </p>
         </div>
       </aside>
@@ -71,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="portal-topbar">
           <div>
             <p className="portal-eyebrow">TEAM VIEW</p>
-            <h2>Operations workspace</h2>
+            <h2>Cover Edge operations workspace</h2>
           </div>
 
           <div className="portal-topbar__status">

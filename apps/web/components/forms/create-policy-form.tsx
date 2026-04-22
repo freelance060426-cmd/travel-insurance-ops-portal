@@ -136,7 +136,7 @@ export function CreatePolicyForm({
     );
   }
 
-  async function handleSaveDraft() {
+  async function handleSavePolicy() {
     if (!partnerId) {
       setSubmitState({
         status: "error",
@@ -147,7 +147,7 @@ export function CreatePolicyForm({
 
     setSubmitState({
       status: "saving",
-      message: "Saving draft policy...",
+      message: "Saving policy...",
     });
 
     try {
@@ -183,7 +183,7 @@ export function CreatePolicyForm({
         message:
           error instanceof Error
             ? error.message
-            : "Failed to save draft policy.",
+            : "Failed to save policy.",
       });
     }
   }
@@ -428,9 +428,9 @@ export function CreatePolicyForm({
         <button
           className="primary-button"
           type="button"
-          onClick={handleSaveDraft}
+          onClick={handleSavePolicy}
         >
-          {submitState.status === "saving" ? "Saving..." : "Save draft policy"}
+          {submitState.status === "saving" ? "Saving..." : "Save Policy"}
         </button>
       </div>
     </div>

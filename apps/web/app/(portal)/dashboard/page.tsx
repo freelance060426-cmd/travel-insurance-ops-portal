@@ -3,20 +3,29 @@ import { dashboardMetrics, recentActivities, policyRows } from "@/lib/mock-data"
 export default function DashboardPage() {
   return (
     <div className="page-stack">
-      <section className="hero-panel">
-        <div>
-          <p className="portal-eyebrow">PHASE 1 PREVIEW</p>
-          <h1>Daily policy control room</h1>
+      <section className="hero-panel hero-panel--brand hero-panel--dashboard">
+        <div className="hero-panel__content">
+          <p className="portal-eyebrow">COVER EDGE DASHBOARD</p>
+          <h1>Daily travel insurance control room</h1>
           <p className="hero-panel__text">
-            This dashboard is focused on the work your team actually does each day: create
-            policies, check records, send PDFs, and track partner-side movement.
+            Track travel protection operations with a brand-led dashboard built
+            for policy issue, invoice dispatch, client communication, and daily
+            servicing visibility.
           </p>
         </div>
 
         <div className="hero-panel__meta">
-          <span className="portal-chip">5 internal users</span>
-          <span className="portal-chip">Manual-first workflow</span>
-          <span className="portal-chip">Bajaj-ready later</span>
+          <div className="dashboard-hero-visual">
+            <div className="dashboard-hero-visual__glow" />
+            <div className="dashboard-hero-visual__card">
+              <span>Travel coverage</span>
+              <strong>Inbound + outbound trip workflows</strong>
+            </div>
+            <div className="dashboard-hero-visual__card dashboard-hero-visual__card--secondary">
+              <span>Today</span>
+              <strong>Policies, invoices, and dispatch in one view</strong>
+            </div>
+          </div>
         </div>
       </section>
 
