@@ -2,7 +2,10 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -19,14 +22,54 @@ import type { CreatePolicyDto } from "./dto/create-policy.dto";
 import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
 import type { SendPolicyEmailDto } from "./dto/send-policy-email.dto";
 
+type PolicyListQuery = Record<string, string | undefined>;
+
+function toDate(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
 @Injectable()
-export class PoliciesService {
+export class PoliciesService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
   ) {}
 
   private readonly pdfDirectory = policyPdfRoot;
+  private expiryTimer: NodeJS.Timeout | null = null;
+
+  async onModuleInit() {
+    await this.expirePastPolicies();
+    this.expiryTimer = setInterval(
+      () => {
+        void this.expirePastPolicies();
+      },
+      24 * 60 * 60 * 1000,
+    );
+  }
+
+  onModuleDestroy() {
+    if (this.expiryTimer) {
+      clearInterval(this.expiryTimer);
+    }
+  }
 
   private ensurePdfDirectory() {
     if (!existsSync(this.pdfDirectory)) {
@@ -34,8 +77,96 @@ export class PoliciesService {
     }
   }
 
-  list() {
+  async expirePastPolicies(now = new Date()) {
+    const expirable = await this.prisma.policy.findMany({
+      where: {
+        endDate: { lt: now },
+        status: { in: ["DRAFT", "ACTIVE", "ENDORSED"] },
+      },
+      select: {
+        id: true,
+        policyNumber: true,
+        status: true,
+        endDate: true,
+      },
+    });
+
+    if (!expirable.length) {
+      return { expired: 0 };
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.policy.updateMany({
+        where: { id: { in: expirable.map((policy) => policy.id) } },
+        data: { status: "EXPIRED" },
+      }),
+      this.prisma.policyAction.createMany({
+        data: expirable.map((policy) => ({
+          policyId: policy.id,
+          actionType: "AUTO_EXPIRE",
+          actionSummary: `Policy auto-expired after travel end date ${policy.endDate.toISOString().slice(0, 10)}`,
+          beforeJson: {
+            status: policy.status,
+            endDate: policy.endDate,
+          },
+          afterJson: {
+            status: "EXPIRED",
+          },
+          doneBy: "system@travel-ops.local",
+        })),
+      }),
+    ]);
+
+    return { expired: expirable.length };
+  }
+
+  list(query: PolicyListQuery = {}) {
+    const search = query.search?.trim();
+    const issueFrom = toDate(query.issueFrom);
+    const issueTo = toDate(query.issueTo);
+    const where: Prisma.PolicyWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.partnerId ? { partnerId: query.partnerId } : {}),
+      ...(issueFrom || issueTo
+        ? {
+            issueDate: {
+              ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
+              ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
+            },
+          }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { policyNumber: { contains: search, mode: "insensitive" } },
+              {
+                primaryTravellerName: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+              {
+                partner: {
+                  name: { contains: search, mode: "insensitive" },
+                },
+              },
+              {
+                travellers: {
+                  some: {
+                    passportNumber: {
+                      contains: search,
+                      mode: "insensitive",
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
     return this.prisma.policy.findMany({
+      where,
       include: {
         partner: true,
         travellers: true,

@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -25,14 +27,21 @@ if (!existsSync(policyUploadsRoot)) {
   mkdirSync(policyUploadsRoot, { recursive: true });
 }
 
+const allowedDocumentMimeTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 @Controller("policies")
 @UseGuards(JwtAuthGuard)
 export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) {}
 
   @Get()
-  listPolicies() {
-    return this.policiesService.list();
+  listPolicies(@Query() query: Record<string, string | undefined>) {
+    return this.policiesService.list(query);
   }
 
   @Get(":id")
@@ -53,6 +62,26 @@ export class PoliciesController {
   @Post(":id/documents")
   @UseInterceptors(
     FileInterceptor("file", {
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+      fileFilter: (
+        _req: unknown,
+        file: { mimetype: string },
+        cb: (error: Error | null, acceptFile: boolean) => void,
+      ) => {
+        if (!allowedDocumentMimeTypes.has(file.mimetype)) {
+          cb(
+            new BadRequestException(
+              "Only PDF, JPEG, PNG, and WebP documents are allowed",
+            ),
+            false,
+          );
+          return;
+        }
+
+        cb(null, true);
+      },
       storage: diskStorage({
         destination: (
           _req: unknown,

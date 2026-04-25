@@ -6,6 +6,7 @@ import { EmailModule } from "./modules/email/email.module";
 import { InvoicesModule } from "./modules/invoices/invoices.module";
 import { PartnersModule } from "./modules/partners/partners.module";
 import { PoliciesModule } from "./modules/policies/policies.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PoliciesModule } from "./modules/policies/policies.module";
     PartnersModule,
     PoliciesModule,
     InvoicesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
 })

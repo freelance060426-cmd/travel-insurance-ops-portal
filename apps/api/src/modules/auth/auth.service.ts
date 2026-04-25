@@ -70,6 +70,10 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
+    if (user.status !== "ACTIVE") {
+      throw new UnauthorizedException("User is inactive");
+    }
+
     const passwordMatches = await bcrypt.compare(input.password, user.passwordHash);
 
     if (!passwordMatches) {
@@ -117,5 +121,22 @@ export class AuthService {
 
   verifyToken(token: string) {
     return jwt.verify(token, this.getJwtSecret()) as AuthTokenPayload;
+  }
+
+  async verifyActiveToken(token: string) {
+    const payload = this.verifyToken(token);
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || user.status !== "ACTIVE") {
+      throw new UnauthorizedException("User is inactive or no longer exists");
+    }
+
+    return {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 }

@@ -21,7 +21,7 @@ type RequestWithUser = {
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly authService: AuthService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const authHeader = request.headers.authorization;
 
@@ -30,7 +30,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const token = authHeader.replace("Bearer ", "").trim();
-    request.user = this.authService.verifyToken(token);
+    request.user = await this.authService.verifyActiveToken(token);
     return true;
   }
 }
