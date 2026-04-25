@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { fetchPolicyById } from "@/lib/api";
 import { EndorsePolicyForm } from "@/components/forms/endorse-policy-form";
-import { getPolicyById } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
@@ -43,7 +42,7 @@ export default async function EndorsePolicyPage({
       })),
     };
   } catch {
-    policy = getPolicyById(id);
+    policy = null;
   }
 
   if (!policy) {

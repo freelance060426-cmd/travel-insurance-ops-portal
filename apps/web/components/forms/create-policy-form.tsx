@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ApiPartner } from "@/lib/api";
 import { createPolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
-import {
-  planOptions,
-  partners as fallbackPartners,
-  passportLookupRecords,
-} from "@/lib/mock-data";
+import { planOptions, passportLookupRecords } from "@/lib/mock-data";
 
 type TravellerDraft = {
   id: string;
@@ -40,8 +36,7 @@ export function CreatePolicyForm({
 }) {
   const router = useRouter();
   const { token } = useAuth();
-  const partnerOptions =
-    initialPartners.length > 0 ? initialPartners : fallbackPartners;
+  const partnerOptions = initialPartners;
   const [policyNumber, setPolicyNumber] = useState("IC260001");
   const [partnerId, setPartnerId] = useState(partnerOptions[0]?.id ?? "");
   const [issueDate, setIssueDate] = useState("2026-04-15");

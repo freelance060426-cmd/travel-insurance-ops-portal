@@ -1,26 +1,32 @@
 import { fetchPartners } from "@/lib/api";
 import type { ApiPartner } from "@/lib/api";
-import { partners as fallbackPartners } from "@/lib/mock-data";
 import { PartnerManagement } from "@/components/forms/partner-management";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 export default async function PartnersPage() {
   const token = await getServerAuthToken();
-  let partners: ApiPartner[] = fallbackPartners.map((partner) => ({
-    id: partner.id,
-    partnerCode: partner.code,
-    name: partner.name,
-    contactName: null,
-    email: null,
-    phone: null,
-    status: "ACTIVE",
-  }));
+  let partners: ApiPartner[] = [];
+  let error = "";
 
   try {
     partners = await fetchPartners(token ?? undefined);
-  } catch {
-    partners = partners;
+  } catch (caught) {
+    error =
+      caught instanceof Error
+        ? caught.message
+        : "Partner records could not be loaded.";
   }
 
-  return <PartnerManagement initialPartners={partners} />;
+  return (
+    <div className="page-stack">
+      {error ? (
+        <section className="content-card">
+          <p className="portal-eyebrow">PARTNER ERROR</p>
+          <h1 className="page-title">Partner data is unavailable</h1>
+          <p className="page-subtitle">{error}</p>
+        </section>
+      ) : null}
+      <PartnerManagement initialPartners={partners} />
+    </div>
+  );
 }

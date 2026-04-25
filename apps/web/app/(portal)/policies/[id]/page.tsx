@@ -4,7 +4,6 @@ import { PolicyDocumentsManager } from "@/components/forms/policy-documents-mana
 import { PolicyEmailActions } from "@/components/forms/policy-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchPolicyById } from "@/lib/api";
-import { getPolicyById } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
@@ -74,14 +73,7 @@ export default async function PolicyDetailPage({
       })),
     };
   } catch {
-    const fallbackPolicy = getPolicyById(id);
-    policy = fallbackPolicy
-      ? {
-          ...fallbackPolicy,
-          customerEmail: "",
-          emailLogs: [],
-        }
-      : null;
+    policy = null;
   }
 
   if (!policy) {

@@ -1,6 +1,57 @@
-import { dashboardMetrics, recentActivities, policyRows } from "@/lib/mock-data";
+import { fetchDashboardReport } from "@/lib/api";
+import { getServerAuthToken } from "@/lib/server-auth";
 
-export default function DashboardPage() {
+function formatCurrency(value: string | number | null | undefined) {
+  return `₹ ${Number(value ?? 0).toLocaleString("en-IN")}`;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(value));
+}
+
+export default async function DashboardPage() {
+  const token = await getServerAuthToken();
+  let dashboard = null;
+  let error = "";
+
+  try {
+    dashboard = await fetchDashboardReport(token ?? undefined);
+  } catch (caught) {
+    error =
+      caught instanceof Error
+        ? caught.message
+        : "Dashboard data could not be loaded.";
+  }
+
+  const metrics = dashboard
+    ? [
+        {
+          label: "Total policies",
+          value: dashboard.metrics.totalPolicies,
+          delta: "All records in the portal",
+          tone: "teal",
+        },
+        {
+          label: "Issued today",
+          value: dashboard.metrics.todayPolicies,
+          delta: "Based on issue date",
+          tone: "blue",
+        },
+        {
+          label: "This month",
+          value: dashboard.metrics.monthlyPolicies,
+          delta: "Month-to-date policies",
+          tone: "amber",
+        },
+        {
+          label: "Invoices sent",
+          value: dashboard.metrics.sentInvoices,
+          delta: `${dashboard.metrics.readyInvoices} ready for client share`,
+          tone: "rose",
+        },
+      ]
+    : [];
+
   return (
     <div className="page-stack">
       <section className="hero-panel hero-panel--brand hero-panel--dashboard">
@@ -30,7 +81,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="metric-grid">
-        {dashboardMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <article key={metric.label} className={`metric-card tone-${metric.tone}`}>
             <p>{metric.label}</p>
             <strong>{metric.value}</strong>
@@ -38,6 +89,14 @@ export default function DashboardPage() {
           </article>
         ))}
       </section>
+
+      {error ? (
+        <section className="content-card">
+          <p className="portal-eyebrow">DASHBOARD ERROR</p>
+          <h3>Live dashboard data is unavailable</h3>
+          <p className="page-subtitle">{error}</p>
+        </section>
+      ) : null}
 
       <section className="two-column-grid">
         <article className="content-card">
@@ -49,9 +108,15 @@ export default function DashboardPage() {
           </div>
 
           <ul className="activity-list">
-            {recentActivities.map((activity) => (
-              <li key={activity}>{activity}</li>
-            ))}
+            {dashboard?.recentActions.length ? (
+              dashboard.recentActions.map((activity) => (
+                <li key={activity.id}>
+                  {activity.policy.policyNumber}: {activity.actionSummary}
+                </li>
+              ))
+            ) : (
+              <li>No recent operational activity yet.</li>
+            )}
           </ul>
         </article>
 
@@ -66,15 +131,15 @@ export default function DashboardPage() {
           <div className="partner-stats">
             <div>
               <span>Top partner</span>
-              <strong>WIC KB 14</strong>
+              <strong>{dashboard?.topPartner?.name ?? "No policy data"}</strong>
             </div>
             <div>
               <span>Pending PDF actions</span>
-              <strong>11</strong>
+              <strong>{dashboard?.metrics.pendingPdfPolicies ?? 0}</strong>
             </div>
             <div>
               <span>Email sends today</span>
-              <strong>7</strong>
+              <strong>{dashboard?.metrics.emailSendsToday ?? 0}</strong>
             </div>
           </div>
         </article>
@@ -100,19 +165,26 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {policyRows.slice(0, 4).map((policy) => (
+              {dashboard?.recentPolicies.map((policy) => (
                 <tr key={policy.id}>
                   <td>{policy.policyNumber}</td>
-                  <td>{policy.traveller}</td>
-                  <td>{policy.partner}</td>
+                  <td>{policy.primaryTravellerName}</td>
+                  <td>{policy.partner.name}</td>
                   <td>
-                    <span className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}>
+                    <span
+                      className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
                       {policy.status}
                     </span>
                   </td>
-                  <td>{policy.premium}</td>
+                  <td>{formatCurrency(policy.premiumAmount)}</td>
                 </tr>
               ))}
+              {!dashboard?.recentPolicies.length ? (
+                <tr>
+                  <td colSpan={5}>No recent policies found.</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

@@ -5,7 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { FileCheck2, FilePlus2, LayoutGrid, Receipt, Search, Users2 } from "lucide-react";
+import {
+  BarChart3,
+  FileCheck2,
+  FilePlus2,
+  LayoutGrid,
+  Receipt,
+  Search,
+  Users2,
+} from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 
 const navigation = [
@@ -14,6 +22,7 @@ const navigation = [
   { href: "/policies", label: "Policy Search", icon: Search },
   { href: "/policies/new", label: "Create Policy", icon: FilePlus2 },
   { href: "/invoices", label: "Invoices", icon: Receipt },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -82,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="portal-topbar__status">
-          <div className="portal-chip">
+            <div className="portal-chip">
               <FileCheck2 size={15} />
               <span>Policy PDFs enabled</span>
             </div>

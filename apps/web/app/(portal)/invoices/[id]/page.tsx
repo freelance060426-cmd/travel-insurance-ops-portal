@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { InvoiceEmailActions } from "@/components/forms/invoice-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchInvoiceById } from "@/lib/api";
-import { getInvoiceById } from "@/lib/mock-data";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
@@ -35,14 +34,7 @@ export default async function InvoiceDetailPage({
       emailLogs: apiInvoice.emailLogs || [],
     };
   } catch {
-    const fallback = getInvoiceById(id);
-    invoice = fallback
-      ? {
-          ...fallback,
-          customerEmail: "",
-          emailLogs: [],
-        }
-      : null;
+    invoice = null;
   }
 
   if (!invoice) {

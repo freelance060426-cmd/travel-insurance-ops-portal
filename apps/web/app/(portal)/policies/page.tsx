@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { fetchPolicies } from "@/lib/api";
-import { policyRows } from "@/lib/mock-data";
+import { PolicyExportButton } from "@/components/forms/policy-export-button";
+import { fetchPartners, fetchPolicies } from "@/lib/api";
+import type { ApiPartner } from "@/lib/api";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
@@ -19,12 +20,39 @@ function formatTravelWindow(startDate: string, endDate: string) {
   return `${start} - ${end}`;
 }
 
-export default async function PoliciesPage() {
+export default async function PoliciesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const token = await getServerAuthToken();
-  let rows = policyRows;
+  const params = await searchParams;
+  const selected = {
+    search: typeof params.search === "string" ? params.search : "",
+    partnerId: typeof params.partnerId === "string" ? params.partnerId : "",
+    issueFrom: typeof params.issueFrom === "string" ? params.issueFrom : "",
+    status: typeof params.status === "string" ? params.status : "",
+  };
+  let rows: Array<{
+    id: string;
+    policyNumber: string;
+    traveller: string;
+    passport: string;
+    partner: string;
+    issueDate: string;
+    travelWindow: string;
+    status: string;
+    premium: string;
+  }> = [];
+  let partners: ApiPartner[] = [];
+  let error = "";
 
   try {
-    const policies = await fetchPolicies(token ?? undefined);
+    const [policies, partnerRows] = await Promise.all([
+      fetchPolicies(token ?? undefined, selected),
+      fetchPartners(token ?? undefined),
+    ]);
+    partners = partnerRows;
     rows = policies.map((policy) => ({
       id: policy.id,
       policyNumber: policy.policyNumber,
@@ -41,8 +69,11 @@ export default async function PoliciesPage() {
           ? `₹ ${Number(policy.premiumAmount).toLocaleString("en-IN")}`
           : "₹ 0",
     }));
-  } catch {
-    rows = policyRows;
+  } catch (caught) {
+    error =
+      caught instanceof Error
+        ? caught.message
+        : "Policy search could not be loaded.";
   }
 
   return (
@@ -59,50 +90,65 @@ export default async function PoliciesPage() {
           </Link>
         </div>
 
-        <div className="filter-grid">
+        <form className="filter-grid" action="/policies">
           <label>
-            <span>Policy Number</span>
-            <input placeholder="Search by policy number" />
-          </label>
-          <label>
-            <span>Passport Number</span>
-            <input placeholder="Search by passport" />
-          </label>
-          <label>
-            <span>Traveller Name</span>
-            <input placeholder="Search by traveller" />
+            <span>Policy / Passport / Traveller</span>
+            <input
+              name="search"
+              placeholder="Search policy, passport, traveller, partner"
+              defaultValue={selected.search}
+            />
           </label>
           <label>
             <span>Partner</span>
-            <select defaultValue="All partners">
-              <option>All partners</option>
-              <option>Tourist Muse</option>
-              <option>WIC KB 14</option>
-              <option>Urbane Travel LLP</option>
+            <select name="partnerId" defaultValue={selected.partnerId}>
+              <option value="">All partners</option>
+              {partners.map((partner) => (
+                <option key={partner.id} value={partner.id}>
+                  {partner.name}
+                </option>
+              ))}
             </select>
           </label>
-        </div>
-
-        <div className="filter-grid filter-grid--secondary">
           <label>
             <span>Issue Date</span>
-            <input type="date" defaultValue="2026-04-03" />
+            <input
+              type="date"
+              name="issueFrom"
+              defaultValue={selected.issueFrom}
+            />
           </label>
           <label>
             <span>Status</span>
-            <select defaultValue="Any status">
-              <option>Any status</option>
-              <option>Draft</option>
-              <option>Active</option>
-              <option>Endorsed</option>
-              <option>PDF Pending</option>
+            <select name="status" defaultValue={selected.status}>
+              <option value="">Any status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="ACTIVE">Active</option>
+              <option value="ENDORSED">Endorsed</option>
+              <option value="EXPIRED">Expired</option>
             </select>
           </label>
+          <div className="action-button-row">
+            <button className="primary-button" type="submit">
+              Apply filters
+            </button>
+            <Link className="ghost-button" href="/policies">
+              Clear
+            </Link>
+            <PolicyExportButton params={selected} />
+          </div>
+        </form>
+
+        <div className="filter-grid filter-grid--secondary">
           <div className="filter-summary">
-            <span>Specific date result</span>
-            <strong>19 policies found</strong>
+            <span>Filtered result</span>
+            <strong>{rows.length} policies found</strong>
           </div>
         </div>
+
+        {error ? (
+          <div className="submit-banner submit-error">{error}</div>
+        ) : null}
       </section>
 
       <section className="content-card">
@@ -146,6 +192,11 @@ export default async function PoliciesPage() {
                   <td>{policy.premium}</td>
                 </tr>
               ))}
+              {!rows.length ? (
+                <tr>
+                  <td colSpan={8}>No policies match the current filters.</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

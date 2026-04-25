@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { uploadPolicyDocument } from "@/lib/api";
+import { buildApiAssetUrl, uploadPolicyDocument } from "@/lib/api";
 
 type PolicyDocumentView = {
   label: string;
@@ -102,7 +102,7 @@ export function PolicyDocumentsManager({
             {document.url ? (
               <a
                 className="ghost-button"
-                href={`http://localhost:4000${document.url}`}
+                href={buildApiAssetUrl(document.url) ?? "#"}
                 target="_blank"
                 rel="noreferrer"
               >

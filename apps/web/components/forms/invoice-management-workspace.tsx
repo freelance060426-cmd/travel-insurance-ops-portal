@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
+  buildApiAssetUrl,
   bulkGenerateInvoices,
   getInvoicePdf,
   sendInvoiceEmail,
@@ -49,7 +50,7 @@ function InvoiceRowActions({
 
     try {
       const result = await getInvoicePdf(invoice.id, token ?? undefined);
-      window.open(`http://localhost:4000${result.fileUrl}`, "_blank");
+      window.open(buildApiAssetUrl(result.fileUrl) ?? result.fileUrl, "_blank");
       setState({ status: "success", message: "PDF ready." });
     } catch (error) {
       setState({

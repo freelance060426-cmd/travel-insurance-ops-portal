@@ -85,6 +85,50 @@ export type ApiInvoice = {
     | null;
 };
 
+export type ApiDashboardReport = {
+  metrics: {
+    totalPolicies: number;
+    todayPolicies: number;
+    monthlyPolicies: number;
+    totalInvoices: number;
+    readyInvoices: number;
+    sentInvoices: number;
+    pendingPdfPolicies: number;
+    emailSendsToday: number;
+  };
+  topPartner: {
+    id: string;
+    name: string;
+    policyCount: number;
+  } | null;
+  recentPolicies: ApiPolicy[];
+  recentActions: Array<{
+    id: string;
+    actionType: string;
+    actionSummary: string;
+    doneAt: string;
+    policy: {
+      policyNumber: string;
+      primaryTravellerName: string;
+    };
+  }>;
+};
+
+export type ApiPolicyReport = {
+  total: number;
+  rows: ApiPolicy[];
+};
+
+export type ApiPartnerReportRow = {
+  id: string;
+  partnerCode: string;
+  name: string;
+  status: string;
+  policyCount: number;
+  invoiceCount: number;
+  totalPremium: number;
+};
+
 export type ApiEligibleInvoicePolicy = {
   id: string;
   policyNumber: string;
@@ -112,6 +156,34 @@ export type LoginResponse = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+export function buildApiAssetUrl(path?: string | null) {
+  if (!path) {
+    return null;
+  }
+
+  if (/^https?:\/\//.test(path)) {
+    return path;
+  }
+
+  return `${API_BASE}${path}`;
+}
+
+function buildQuery(params?: Record<string, string | undefined>) {
+  if (!params) {
+    return "";
+  }
+
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) {
+      query.set(key, value);
+    }
+  }
+
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
 
 async function fetchJson<T>(
   path: string,
@@ -164,8 +236,15 @@ export async function createPartner(
   );
 }
 
-export async function fetchPolicies(token?: string) {
-  return fetchJson<ApiPolicy[]>("/api/policies", undefined, token);
+export async function fetchPolicies(
+  token?: string,
+  params?: Record<string, string | undefined>,
+) {
+  return fetchJson<ApiPolicy[]>(
+    `/api/policies${buildQuery(params)}`,
+    undefined,
+    token,
+  );
 }
 
 export async function fetchPolicyById(id: string, token?: string) {
@@ -215,6 +294,36 @@ export async function fetchEligibleInvoicePolicies(token?: string) {
     undefined,
     token,
   );
+}
+
+export async function fetchDashboardReport(token?: string) {
+  return fetchJson<ApiDashboardReport>("/api/reports/dashboard", undefined, token);
+}
+
+export async function fetchPolicyReport(
+  token?: string,
+  params?: Record<string, string | undefined>,
+) {
+  return fetchJson<ApiPolicyReport>(
+    `/api/reports/policies${buildQuery(params)}`,
+    undefined,
+    token,
+  );
+}
+
+export async function fetchPartnerReport(
+  token?: string,
+  params?: Record<string, string | undefined>,
+) {
+  return fetchJson<ApiPartnerReportRow[]>(
+    `/api/reports/partners${buildQuery(params)}`,
+    undefined,
+    token,
+  );
+}
+
+export function buildPolicyExportUrl(params?: Record<string, string | undefined>) {
+  return `${API_BASE}/api/reports/policies/export${buildQuery(params)}`;
 }
 
 export async function createInvoice(

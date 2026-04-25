@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
+  buildApiAssetUrl,
   getInvoicePdf,
   getPolicyPdf,
   regenerateInvoicePdf,
@@ -41,7 +42,7 @@ export function PdfActions({
             ? await regenerateInvoicePdf(entityId, token ?? undefined)
             : await getInvoicePdf(entityId, token ?? undefined);
 
-      setPdfUrl(`http://localhost:4000${result.fileUrl}`);
+      setPdfUrl(buildApiAssetUrl(result.fileUrl));
       setState({
         status: "success",
         message: `PDF ready: ${result.fileName}`,
