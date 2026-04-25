@@ -152,6 +152,9 @@ export function InvoiceManagementWorkspace({
   const sentInvoices = invoices.filter(
     (invoice) => statusLabel(invoice.status) === "Sent",
   ).length;
+  const selectedPremiumTotal = eligiblePolicies
+    .filter((policy) => selectedPolicyIds.includes(policy.id))
+    .reduce((sum, policy) => sum + Number(policy.premiumAmount ?? 0), 0);
 
   const allSelected =
     eligiblePolicies.length > 0 &&
@@ -306,6 +309,25 @@ export function InvoiceManagementWorkspace({
               onChange={(event) => setNote(event.target.value)}
             />
           </label>
+        </div>
+
+        <div className="generation-readiness">
+          <div>
+            <span>Selected policies</span>
+            <strong>{selectedPolicyIds.length}</strong>
+          </div>
+          <div>
+            <span>Invoice records to create</span>
+            <strong>{selectedPolicyIds.length}</strong>
+          </div>
+          <div>
+            <span>Selected premium value</span>
+            <strong>₹ {selectedPremiumTotal.toLocaleString("en-IN")}</strong>
+          </div>
+          <div>
+            <span>Bulk rule</span>
+            <strong>One invoice per policy</strong>
+          </div>
         </div>
 
         <div className="action-button-row" style={{ marginBottom: 16 }}>

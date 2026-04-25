@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { fetchDashboardReport } from "@/lib/api";
 import { getServerAuthToken } from "@/lib/server-auth";
 
@@ -52,6 +53,39 @@ export default async function DashboardPage() {
       ]
     : [];
 
+  const commandCards = dashboard
+    ? [
+        {
+          label: "Start new policy",
+          value: "Create policy",
+          detail: "Manual-first issue flow with traveller and plan capture.",
+          href: "/policies/new",
+          tone: "primary",
+        },
+        {
+          label: "Pending PDF actions",
+          value: dashboard.metrics.pendingPdfPolicies,
+          detail: "Policies still waiting for PDF generation or refresh.",
+          href: "/policies",
+          tone: "attention",
+        },
+        {
+          label: "Invoices ready",
+          value: dashboard.metrics.readyInvoices,
+          detail: "Generated invoices ready for client sharing.",
+          href: "/invoices",
+          tone: "calm",
+        },
+        {
+          label: "Export reports",
+          value: "CSV",
+          detail: "Download filtered policy and partner activity reports.",
+          href: "/reports",
+          tone: "calm",
+        },
+      ]
+    : [];
+
   return (
     <div className="page-stack">
       <section className="hero-panel hero-panel--brand hero-panel--dashboard">
@@ -59,9 +93,8 @@ export default async function DashboardPage() {
           <p className="portal-eyebrow">COVER EDGE DASHBOARD</p>
           <h1>Daily travel insurance control room</h1>
           <p className="hero-panel__text">
-            Track travel protection operations with a brand-led dashboard built
-            for policy issue, invoice dispatch, client communication, and daily
-            servicing visibility.
+            Prioritise today&apos;s policy issue, invoice dispatch, PDF actions,
+            and client communication from one operations surface.
           </p>
         </div>
 
@@ -69,12 +102,12 @@ export default async function DashboardPage() {
           <div className="dashboard-hero-visual">
             <div className="dashboard-hero-visual__glow" />
             <div className="dashboard-hero-visual__card">
-              <span>Travel coverage</span>
-              <strong>Inbound + outbound trip workflows</strong>
+              <span>Today&apos;s issue count</span>
+              <strong>{dashboard?.metrics.todayPolicies ?? 0} policies created</strong>
             </div>
             <div className="dashboard-hero-visual__card dashboard-hero-visual__card--secondary">
-              <span>Today</span>
-              <strong>Policies, invoices, and dispatch in one view</strong>
+              <span>Dispatch health</span>
+              <strong>{dashboard?.metrics.readyInvoices ?? 0} invoices ready to send</strong>
             </div>
           </div>
         </div>
@@ -98,12 +131,27 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      <section className="two-column-grid">
+      <section className="ops-command-grid">
+        {commandCards.map((card) => (
+          <Link
+            key={card.label}
+            className={`ops-command-card ops-command-card--${card.tone}`}
+            href={card.href}
+          >
+            <span className="ops-command-card__label">{card.label}</span>
+            <strong>{card.value}</strong>
+            <span className="ops-command-card__detail">{card.detail}</span>
+            <span className="ops-command-card__action">Open</span>
+          </Link>
+        ))}
+      </section>
+
+      <section className="two-column-grid dashboard-work-grid">
         <article className="content-card">
           <div className="section-heading">
             <div>
-              <p className="portal-eyebrow">RECENT ACTIVITY</p>
-              <h3>Ops updates</h3>
+              <p className="portal-eyebrow">LIVE OPERATIONS</p>
+              <h3>Recent service trail</h3>
             </div>
           </div>
 
@@ -123,21 +171,21 @@ export default async function DashboardPage() {
         <article className="content-card">
           <div className="section-heading">
             <div>
-              <p className="portal-eyebrow">AT A GLANCE</p>
-              <h3>Partner performance</h3>
+              <p className="portal-eyebrow">ATTENTION SIGNALS</p>
+              <h3>What needs follow-up</h3>
             </div>
           </div>
 
-          <div className="partner-stats">
-            <div>
+          <div className="ops-signal-grid">
+            <div className="signal-card">
               <span>Top partner</span>
               <strong>{dashboard?.topPartner?.name ?? "No policy data"}</strong>
             </div>
-            <div>
+            <div className="signal-card signal-card--warning">
               <span>Pending PDF actions</span>
               <strong>{dashboard?.metrics.pendingPdfPolicies ?? 0}</strong>
             </div>
-            <div>
+            <div className="signal-card signal-card--success">
               <span>Email sends today</span>
               <strong>{dashboard?.metrics.emailSendsToday ?? 0}</strong>
             </div>

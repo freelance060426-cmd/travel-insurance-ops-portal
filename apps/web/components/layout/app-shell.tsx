@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   Receipt,
   Search,
+  ShieldCheck,
   Users2,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -25,10 +26,78 @@ const navigation = [
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
+type ModuleContext = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+const moduleCopy: Record<string, ModuleContext> = {
+  "/dashboard": {
+    eyebrow: "COMMAND CENTER",
+    title: "Daily operations control room",
+    description: "Track policies, invoices, PDFs, and client dispatch from one workspace.",
+  },
+  "/partners": {
+    eyebrow: "NETWORK",
+    title: "Partner operations",
+    description: "Manage partner records and keep policy ownership clear.",
+  },
+  "/policies": {
+    eyebrow: "POLICY DESK",
+    title: "Policy search and servicing",
+    description: "Find policies, inspect history, and continue service actions.",
+  },
+  "/policies/new": {
+    eyebrow: "NEW POLICY",
+    title: "Create travel policy",
+    description: "Capture policy, traveller, and plan details through a guided flow.",
+  },
+  "/invoices": {
+    eyebrow: "BILLING DESK",
+    title: "Invoice generation and dispatch",
+    description: "Generate, download, and send invoices from eligible policy records.",
+  },
+  "/reports": {
+    eyebrow: "REPORTING",
+    title: "Operational reports",
+    description: "Review policy activity and export CSV reports for follow-up.",
+  },
+};
+
+function isActiveRoute(pathname: string, href: string) {
+  if (href === "/dashboard") {
+    return pathname === href;
+  }
+
+  if (href === "/policies") {
+    return (
+      pathname === "/policies" ||
+      (pathname.startsWith("/policies/") && pathname !== "/policies/new")
+    );
+  }
+
+  if (href === "/policies/new") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function getModuleCopy(pathname: string): ModuleContext {
+  if (pathname === "/policies/new") {
+    return moduleCopy["/policies/new"]!;
+  }
+
+  const match = navigation.find((item) => isActiveRoute(pathname, item.href));
+  return moduleCopy[match?.href ?? "/dashboard"] ?? moduleCopy["/dashboard"]!;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const currentModule = getModuleCopy(pathname);
 
   function handleLogout() {
     signOut();
@@ -55,9 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav className="portal-nav">
           {navigation.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isActive = isActiveRoute(pathname, item.href);
             const Icon = item.icon;
 
             return (
@@ -85,15 +152,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="portal-main">
         <header className="portal-topbar">
-          <div>
-            <p className="portal-eyebrow">TEAM VIEW</p>
-            <h2>Cover Edge operations workspace</h2>
+          <div className="portal-topbar__copy">
+            <p className="portal-eyebrow">{currentModule.eyebrow}</p>
+            <h2>{currentModule.title}</h2>
+            <p>{currentModule.description}</p>
           </div>
 
           <div className="portal-topbar__status">
             <div className="portal-chip">
+              <ShieldCheck size={15} />
+              <span>Protected session</span>
+            </div>
+            <div className="portal-chip portal-chip--strong">
               <FileCheck2 size={15} />
-              <span>Policy PDFs enabled</span>
+              <span>PDF + email ready</span>
             </div>
             <div className="portal-user-meta">
               <div className="portal-user-meta__text">

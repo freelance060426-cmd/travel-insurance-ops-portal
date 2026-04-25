@@ -200,6 +200,42 @@ export function CreatePolicyForm({
         ) : null}
       </section>
 
+      <section className="workflow-stepper" aria-label="Policy creation steps">
+        {[
+          {
+            label: "Policy details",
+            detail: "Partner, dates, policy number",
+            status: partnerId ? "active" : "pending",
+          },
+          {
+            label: "Traveller details",
+            detail: `${travellers.length} traveller${travellers.length === 1 ? "" : "s"}`,
+            status: travellers[0]?.name ? "active" : "pending",
+          },
+          {
+            label: "Documents",
+            detail: "Available after save",
+            status: "locked",
+          },
+          {
+            label: "Review & save",
+            detail: `₹ ${totalPremium.toLocaleString("en-IN")} premium`,
+            status: totalPremium > 0 ? "active" : "pending",
+          },
+        ].map((step, index) => (
+          <div
+            key={step.label}
+            className={`workflow-step workflow-step--${step.status}`}
+          >
+            <span className="workflow-step__index">{index + 1}</span>
+            <div>
+              <strong>{step.label}</strong>
+              <span>{step.detail}</span>
+            </div>
+          </div>
+        ))}
+      </section>
+
       <div className="form-layout">
         <section className="content-card">
           <div className="section-heading">
