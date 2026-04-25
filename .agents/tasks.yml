@@ -1,11 +1,26 @@
 project: travel-insurance-ops-portal
 
 current_focus:
-  - implement reports and export backend flows
   - tighten role-based data visibility rules
-  - continue final UI and product polish
-  - keep backend integration-ready for later Bajaj work
+  - add final product polish and release-style QA
   - prepare the next clean checkpoint commit
+  - keep backend integration-ready for later Bajaj work
+
+recently_fixed:
+  - protect partner APIs and tighten authenticated access
+  - remove hardcoded localhost file and PDF URLs
+  - add upload file type and size limits
+  - implement reports and export backend flows
+  - connect dashboard to live API data
+  - wire policy search filters to backend queries
+  - replace major mock fallbacks with visible error states
+  - improve mobile shell and topbar layout
+
+remaining_review_findings:
+  - add user-to-partner assignment model for true partner-scoped visibility
+  - replace remaining demo-only passport autofill source when final client data model is ready
+  - move local uploads to object storage for deployed production if required
+  - continue final UI and product polish
 
 phase_1:
   - authentication_and_roles
@@ -77,8 +92,21 @@ completed:
   - full_product_http_e2e_validation
   - smtp_delivery_validation
   - favicon_and_mobile_layout_polish
+  - full_product_review_after_invoice_branding_expansion
+  - partner_api_auth_guard_fix
+  - dynamic_file_and_pdf_asset_urls
+  - upload_file_type_and_size_limits
+  - reports_backend_and_csv_export
+  - dashboard_live_api_data
+  - policy_search_filter_backend_wiring
+  - major_mock_fallback_cleanup
+  - mobile_shell_layout_polish
+  - role_guard_foundation_and_super_admin_partner_create
+  - automatic_policy_expiry_job
 
 open_items:
+  - partner_scoped_visibility_model
+  - production_object_storage_decision
   - final_manual_policy_field_list
   - detailed_invoice_fields_if_more_than_basic
   - final_policy_pdf_source_priority

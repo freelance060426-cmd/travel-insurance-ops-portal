@@ -453,10 +453,14 @@ Phase 1 reporting stays intentionally minimal.
 
 ### File storage
 
-Use object storage for:
+Phase 1 currently uses backend-local storage under `uploads/` for development and early deployment simplicity.
+
+Use object storage later for:
 - uploaded policy documents
 - generated PDFs
 - invoice PDFs
+
+The frontend should resolve file URLs through the configured API base URL, not through hardcoded localhost hosts, so storage can later move to R2/S3 without changing user-facing flows.
 
 ### PDF strategy
 

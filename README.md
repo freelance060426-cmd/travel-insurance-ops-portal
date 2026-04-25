@@ -145,13 +145,15 @@ Completed:
 - dashboard with metrics and activity feed
 - invoice eligibility, single generate, and bulk generation flow
 - invoice email sending
+- reports dashboard, partner report, policy report, and CSV export
+- automatic policy expiry handling
 - branded login, dashboard, and theme foundation
 - policy terminology cleanup (`Save Policy`)
 
 Next recommended work:
 
-- reports and export backend
-- role-based data visibility
+- partner-scoped role visibility model
+- production storage decision for uploaded files and generated PDFs
 - final polish and release-style QA
 
 ## Notes
