@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   buildApiAssetUrl,
@@ -40,37 +41,34 @@ function InvoiceRowActions({
   onSent: (invoiceId: string) => void;
 }) {
   const { token } = useAuth();
-  const [state, setState] = useState<{
-    status: "idle" | "loading" | "success" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   async function handleDownload() {
-    setState({ status: "loading", message: "Preparing PDF..." });
+    setPending(true);
+    const toastId = toast.loading("Preparing PDF...");
 
     try {
       const result = await getInvoicePdf(invoice.id, token ?? undefined);
       window.open(buildApiAssetUrl(result.fileUrl) ?? result.fileUrl, "_blank");
-      setState({ status: "success", message: "PDF ready." });
+      toast.success("PDF ready.", { id: toastId });
     } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to fetch invoice PDF.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to fetch invoice PDF.",
+        { id: toastId },
+      );
+    } finally {
+      setPending(false);
     }
   }
 
   async function handleSend() {
     if (!invoice.policy?.customerEmail) {
-      setState({
-        status: "error",
-        message: "No customer email found on the linked policy.",
-      });
+      toast.error("No customer email found on the linked policy.");
       return;
     }
 
-    setState({ status: "loading", message: "Sending invoice..." });
+    setPending(true);
+    const toastId = toast.loading("Sending invoice...");
 
     try {
       await sendInvoiceEmail(
@@ -82,14 +80,15 @@ function InvoiceRowActions({
         },
         token ?? undefined,
       );
-      setState({ status: "success", message: "Invoice sent." });
+      toast.success("Invoice sent.", { id: toastId });
       onSent(invoice.id);
     } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to send invoice.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send invoice.",
+        { id: toastId },
+      );
+    } finally {
+      setPending(false);
     }
   }
 
@@ -106,6 +105,7 @@ function InvoiceRowActions({
           className="invoice-action-button"
           type="button"
           onClick={handleDownload}
+          disabled={pending}
         >
           Download
         </button>
@@ -113,23 +113,11 @@ function InvoiceRowActions({
           className="invoice-action-button invoice-action-button--send"
           type="button"
           onClick={handleSend}
+          disabled={pending}
         >
           Send
         </button>
       </div>
-      {state.status !== "idle" ? (
-        <small
-          className={`table-inline-note table-inline-note--${
-            state.status === "error"
-              ? "error"
-              : state.status === "success"
-                ? "success"
-                : "loading"
-          }`}
-        >
-          {state.message}
-        </small>
-      ) : null}
     </div>
   );
 }
@@ -143,7 +131,9 @@ export function InvoiceManagementWorkspace({
 }) {
   const { token } = useAuth();
   const [invoices, setInvoices] = useState(initialInvoices);
-  const [eligiblePolicies, setEligiblePolicies] = useState(initialEligiblePolicies);
+  const [eligiblePolicies, setEligiblePolicies] = useState(
+    initialEligiblePolicies,
+  );
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().slice(0, 10),
@@ -151,10 +141,7 @@ export function InvoiceManagementWorkspace({
   const [note, setNote] = useState(
     "Invoice generated for an eligible policy record.",
   );
-  const [state, setState] = useState<{
-    status: "idle" | "loading" | "success" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   const totalInvoices = invoices.length;
   const readyInvoices = invoices.filter(
@@ -169,7 +156,7 @@ export function InvoiceManagementWorkspace({
   const selectedPremiumTotal = eligiblePolicies
     .filter((policy) => selectedPolicyIds.includes(policy.id))
     .reduce((sum, policy) => sum + Number(policy.premiumAmount ?? 0), 0);
-  const isGenerating = state.status === "loading";
+  const isGenerating = pending;
   const canGenerateSingle = selectedPolicyIds.length === 1 && !isGenerating;
   const canGenerateBulk = selectedPolicyIds.length >= 2 && !isGenerating;
 
@@ -195,28 +182,25 @@ export function InvoiceManagementWorkspace({
 
   async function handleGenerate(mode: "single" | "bulk") {
     if (mode === "single" && selectedPolicyIds.length !== 1) {
-      setState({
-        status: "error",
-        message: "Select exactly one eligible policy for single invoice generation.",
-      });
+      toast.error(
+        "Select exactly one eligible policy for single invoice generation.",
+      );
       return;
     }
 
     if (mode === "bulk" && selectedPolicyIds.length < 2) {
-      setState({
-        status: "error",
-        message: "Select at least two eligible policies for bulk invoice generation.",
-      });
+      toast.error(
+        "Select at least two eligible policies for bulk invoice generation.",
+      );
       return;
     }
 
-    setState({
-      status: "loading",
-      message:
-        mode === "single"
-          ? "Generating invoice..."
-          : `Generating ${selectedPolicyIds.length} invoices...`,
-    });
+    setPending(true);
+    const toastId = toast.loading(
+      mode === "single"
+        ? "Generating invoice..."
+        : `Generating ${selectedPolicyIds.length} invoices...`,
+    );
 
     try {
       const created = await bulkGenerateInvoices(
@@ -234,21 +218,19 @@ export function InvoiceManagementWorkspace({
         current.filter((policy) => !selectedPolicyIds.includes(policy.id)),
       );
       setSelectedPolicyIds([]);
-      setState({
-        status: "success",
-        message:
-          mode === "single"
-            ? `Invoice ${created[0]?.invoiceNumber ?? ""} generated successfully.`
-            : `${created.length} invoices generated successfully.`,
-      });
+      toast.success(
+        mode === "single"
+          ? `Invoice ${created[0]?.invoiceNumber ?? ""} generated.`
+          : `${created.length} invoices generated.`,
+        { id: toastId },
+      );
     } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Invoice generation failed.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Invoice generation failed.",
+        { id: toastId },
+      );
+    } finally {
+      setPending(false);
     }
   }
 
@@ -285,8 +267,9 @@ export function InvoiceManagementWorkspace({
           <p className="portal-eyebrow">INVOICE WORKSPACE</p>
           <h1>Generate and dispatch invoices from eligible policy records</h1>
           <p className="hero-panel__text">
-            Select policies without invoices, confirm generation rules, create one
-            invoice per policy, then download or send each invoice from the dispatch list.
+            Select policies without invoices, confirm generation rules, create
+            one invoice per policy, then download or send each invoice from the
+            dispatch list.
           </p>
         </div>
 
@@ -306,8 +289,8 @@ export function InvoiceManagementWorkspace({
             <h3>Confirm rules before creating invoices</h3>
             <p className="section-note">
               Bulk generation is intentionally strict: every selected eligible
-              policy creates its own invoice record. No combined invoice is created
-              in this phase.
+              policy creates its own invoice record. No combined invoice is
+              created in this phase.
             </p>
           </div>
           <Link className="ghost-button" href="/invoices/new">
@@ -347,7 +330,9 @@ export function InvoiceManagementWorkspace({
               </div>
               <div>
                 <span>Selected premium value</span>
-                <strong>₹ {selectedPremiumTotal.toLocaleString("en-IN")}</strong>
+                <strong>
+                  ₹ {selectedPremiumTotal.toLocaleString("en-IN")}
+                </strong>
               </div>
               <div>
                 <span>Bulk rule</span>
@@ -375,7 +360,9 @@ export function InvoiceManagementWorkspace({
               >
                 <span>Bulk</span>
                 <strong>2 or more policies</strong>
-                <small>Creates separate invoices for each selected policy.</small>
+                <small>
+                  Creates separate invoices for each selected policy.
+                </small>
               </div>
             </div>
             <div className="invoice-selection-summary">
@@ -428,20 +415,6 @@ export function InvoiceManagementWorkspace({
             Generate Bulk Invoices
           </button>
         </div>
-
-        {state.status !== "idle" ? (
-          <div
-            className={`submit-banner submit-${
-              state.status === "error"
-                ? "error"
-                : state.status === "success"
-                  ? "success"
-                  : "saving"
-            }`}
-          >
-            {state.message}
-          </div>
-        ) : null}
 
         <div className="invoice-selection-panel">
           <div className="invoice-selection-toolbar">
@@ -509,9 +482,14 @@ export function InvoiceManagementWorkspace({
                         <td>{policy.policyNumber}</td>
                         <td>{policy.primaryTravellerName}</td>
                         <td>{policy.partner.name}</td>
-                        <td>{formatTravelWindow(policy.startDate, policy.endDate)}</td>
                         <td>
-                          ₹ {Number(policy.premiumAmount ?? 0).toLocaleString("en-IN")}
+                          {formatTravelWindow(policy.startDate, policy.endDate)}
+                        </td>
+                        <td>
+                          ₹{" "}
+                          {Number(policy.premiumAmount ?? 0).toLocaleString(
+                            "en-IN",
+                          )}
                         </td>
                       </tr>
                     );

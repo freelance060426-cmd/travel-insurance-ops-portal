@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { ApiPartner } from "@/lib/api";
 import { createPolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -48,13 +49,7 @@ export function CreatePolicyForm({
   const [lastLookupMessage, setLastLookupMessage] = useState(
     "Enter a passport number to reuse previous traveller details when available.",
   );
-  const [submitState, setSubmitState] = useState<{
-    status: "idle" | "saving" | "success" | "error";
-    message: string;
-  }>({
-    status: "idle",
-    message: "",
-  });
+  const [pending, setPending] = useState(false);
 
   const totalPremium = useMemo(() => {
     return travellers.reduce((sum, traveller) => {
@@ -136,17 +131,12 @@ export function CreatePolicyForm({
 
   async function handleSavePolicy() {
     if (!partnerId) {
-      setSubmitState({
-        status: "error",
-        message: "Select a partner before saving the policy.",
-      });
+      toast.error("Select a partner before saving the policy.");
       return;
     }
 
-    setSubmitState({
-      status: "saving",
-      message: "Saving policy...",
-    });
+    setPending(true);
+    const toastId = toast.loading("Saving policy...");
 
     try {
       const payload = {
@@ -170,19 +160,14 @@ export function CreatePolicyForm({
       };
 
       const created = await createPolicy(payload, token ?? undefined);
-      setSubmitState({
-        status: "success",
-        message: `Policy ${created.policyNumber} saved successfully.`,
-      });
+      toast.success(`Policy ${created.policyNumber} saved.`, { id: toastId });
       router.push(`/policies/${created.id}`);
     } catch (error) {
-      setSubmitState({
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to save policy.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save policy.",
+        { id: toastId },
+      );
+      setPending(false);
     }
   }
 
@@ -191,13 +176,18 @@ export function CreatePolicyForm({
       <section className="content-card policy-intro-card">
         <div className="policy-intro-card__copy">
           <p className="portal-eyebrow">CREATE POLICY</p>
-          <h1 className="page-title">Issue a travel policy in four checkpoints</h1>
+          <h1 className="page-title">
+            Issue a travel policy in four checkpoints
+          </h1>
           <p className="page-subtitle">
-            Capture policy details, traveller information, plan selection, and
-            a final save review without blocking optional mobile or email fields.
+            Capture policy details, traveller information, plan selection, and a
+            final save review without blocking optional mobile or email fields.
           </p>
         </div>
-        <div className="policy-intro-card__meta" aria-label="Policy draft summary">
+        <div
+          className="policy-intro-card__meta"
+          aria-label="Policy draft summary"
+        >
           <div>
             <span>Partner</span>
             <strong>{selectedPartner?.partnerCode ?? "Not selected"}</strong>
@@ -211,11 +201,6 @@ export function CreatePolicyForm({
             <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
           </div>
         </div>
-        {submitState.status !== "idle" ? (
-          <div className={`submit-banner submit-${submitState.status}`}>
-            {submitState.message}
-          </div>
-        ) : null}
       </section>
 
       <section className="workflow-stepper" aria-label="Policy creation steps">
@@ -328,7 +313,11 @@ export function CreatePolicyForm({
                 </p>
               </div>
 
-              <button className="ghost-button" type="button" onClick={addTraveller}>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={addTraveller}
+              >
                 Add traveller
               </button>
             </div>
@@ -343,9 +332,13 @@ export function CreatePolicyForm({
                   <article key={traveller.id} className="traveller-entry-card">
                     <div className="traveller-entry-card__header">
                       <div className="traveller-title-row">
-                        <span className="traveller-index-pill">{index + 1}</span>
+                        <span className="traveller-index-pill">
+                          {index + 1}
+                        </span>
                         <div>
-                          <p className="portal-eyebrow">TRAVELLER {index + 1}</p>
+                          <p className="portal-eyebrow">
+                            TRAVELLER {index + 1}
+                          </p>
                           <h4>{traveller.name || "New traveller"}</h4>
                         </div>
                       </div>
@@ -353,9 +346,7 @@ export function CreatePolicyForm({
                         <span
                           className={`status-pill ${traveller.matched ? "status-active" : "status-draft"}`}
                         >
-                          {traveller.matched
-                            ? "Autofilled"
-                            : "Manual entry"}
+                          {traveller.matched ? "Autofilled" : "Manual entry"}
                         </span>
                         {travellers.length > 1 ? (
                           <button
@@ -479,7 +470,8 @@ export function CreatePolicyForm({
 
                     <div className="traveller-footer">
                       <span>
-                        Plan premium is calculated from the selected manual plan.
+                        Plan premium is calculated from the selected manual
+                        plan.
                       </span>
                       <strong>
                         {selectedPlan?.name ?? "Plan"} · ₹{" "}
@@ -547,9 +539,9 @@ export function CreatePolicyForm({
             className="primary-button"
             type="button"
             onClick={handleSavePolicy}
-            disabled={submitState.status === "saving"}
+            disabled={pending}
           >
-            {submitState.status === "saving" ? "Saving..." : "Save Policy"}
+            {pending ? "Saving..." : "Save Policy"}
           </button>
         </div>
       </div>

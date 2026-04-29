@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { buildPolicyExportUrl } from "@/lib/api";
 
@@ -10,10 +11,11 @@ export function PolicyExportButton({
   params: Record<string, string | undefined>;
 }) {
   const { token } = useAuth();
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const [pending, setPending] = useState(false);
 
   async function handleExport() {
-    setState("loading");
+    setPending(true);
+    const toastId = toast.loading("Preparing export...");
 
     try {
       const response = await fetch(buildPolicyExportUrl(params), {
@@ -21,7 +23,7 @@ export function PolicyExportButton({
       });
 
       if (!response.ok) {
-        throw new Error(`Export failed: ${response.status}`);
+        throw new Error(`Export failed (${response.status})`);
       }
 
       const blob = await response.blob();
@@ -33,9 +35,13 @@ export function PolicyExportButton({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setState("idle");
-    } catch {
-      setState("error");
+      toast.success("Export ready.", { id: toastId });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed.", {
+        id: toastId,
+      });
+    } finally {
+      setPending(false);
     }
   }
 
@@ -45,15 +51,10 @@ export function PolicyExportButton({
         className="ghost-button"
         type="button"
         onClick={handleExport}
-        disabled={state === "loading"}
+        disabled={pending}
       >
-        {state === "loading" ? "Exporting..." : "Export CSV"}
+        {pending ? "Exporting..." : "Export CSV"}
       </button>
-      {state === "error" ? (
-        <small className="table-inline-note table-inline-note--error">
-          Export failed. Try again.
-        </small>
-      ) : null}
     </div>
   );
 }

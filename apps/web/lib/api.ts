@@ -77,12 +77,10 @@ export type ApiInvoice = {
   note?: string | null;
   emailLogs?: ApiEmailLog[];
   partner: ApiPartner;
-  policy?:
-    | Pick<
-        ApiPolicy,
-        "id" | "policyNumber" | "primaryTravellerName" | "customerEmail"
-      >
-    | null;
+  policy?: Pick<
+    ApiPolicy,
+    "id" | "policyNumber" | "primaryTravellerName" | "customerEmail"
+  > | null;
 };
 
 export type ApiDashboardReport = {
@@ -201,7 +199,24 @@ async function fetchJson<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed for ${path}: ${response.status}`);
+    let message = `Request failed (${response.status})`;
+    try {
+      const body = await response.clone().json();
+      const raw = (body as { message?: unknown })?.message;
+      if (Array.isArray(raw)) {
+        message = raw.filter(Boolean).join(", ") || message;
+      } else if (typeof raw === "string" && raw.trim()) {
+        message = raw;
+      }
+    } catch {
+      try {
+        const text = await response.text();
+        if (text.trim()) message = text;
+      } catch {
+        // ignore body parse errors
+      }
+    }
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;
@@ -297,7 +312,11 @@ export async function fetchEligibleInvoicePolicies(token?: string) {
 }
 
 export async function fetchDashboardReport(token?: string) {
-  return fetchJson<ApiDashboardReport>("/api/reports/dashboard", undefined, token);
+  return fetchJson<ApiDashboardReport>(
+    "/api/reports/dashboard",
+    undefined,
+    token,
+  );
 }
 
 export async function fetchPolicyReport(
@@ -322,7 +341,9 @@ export async function fetchPartnerReport(
   );
 }
 
-export function buildPolicyExportUrl(params?: Record<string, string | undefined>) {
+export function buildPolicyExportUrl(
+  params?: Record<string, string | undefined>,
+) {
   return `${API_BASE}/api/reports/policies/export${buildQuery(params)}`;
 }
 
@@ -367,13 +388,16 @@ export async function uploadPolicyDocument(
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE}/api/policies/${policyId}/documents`, {
-    method: "POST",
-    headers: {
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
+  const response = await fetch(
+    `${API_BASE}/api/policies/${policyId}/documents`,
+    {
+      method: "POST",
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
     },
-    body: formData,
-  });
+  );
 
   if (!response.ok) {
     throw new Error(

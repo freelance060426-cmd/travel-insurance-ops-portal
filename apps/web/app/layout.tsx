@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import NextTopLoader from "nextjs-toploader";
+import { Toaster } from "sonner";
 import { fetchCurrentUser } from "@/lib/api";
 import { getServerAuthToken } from "@/lib/server-auth";
 import { AuthProvider } from "@/components/providers/auth-provider";
@@ -34,6 +35,12 @@ export default async function RootLayout({
           height={3}
           showSpinner={false}
           shadow="0 0 10px #0f766e,0 0 5px #0f766e"
+        />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{ duration: 3000 }}
         />
         <AuthProvider initialToken={token} initialUser={user}>
           {children}

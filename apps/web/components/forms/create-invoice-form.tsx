@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { ApiEligibleInvoicePolicy, ApiPartner } from "@/lib/api";
 import { createInvoice } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -28,10 +29,7 @@ export function CreateInvoiceForm({
   const [note, setNote] = useState(
     "Invoice generated from an eligible policy and ready for PDF/download flow.",
   );
-  const [submitState, setSubmitState] = useState<{
-    status: "idle" | "saving" | "success" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   const selectedPolicy = useMemo(
     () => initialPolicies.find((policy) => policy.id === policyId),
@@ -45,41 +43,38 @@ export function CreateInvoiceForm({
 
   async function handleCreateInvoice() {
     if (!policyId) {
-      setSubmitState({
-        status: "error",
-        message: "Select an eligible policy before generating an invoice.",
-      });
+      toast.error("Select an eligible policy before generating an invoice.");
       return;
     }
 
-    setSubmitState({
-      status: "saving",
-      message: "Generating invoice...",
-    });
+    setPending(true);
+    const toastId = toast.loading("Generating invoice...");
 
     try {
-      const created = await createInvoice({
-        invoiceNumber,
-        policyId: policyId || undefined,
-        partnerId,
-        invoiceDate,
-        amount: Number(amount),
-        status,
-        note,
-      }, token ?? undefined);
+      const created = await createInvoice(
+        {
+          invoiceNumber,
+          policyId: policyId || undefined,
+          partnerId,
+          invoiceDate,
+          amount: Number(amount),
+          status,
+          note,
+        },
+        token ?? undefined,
+      );
 
-      setSubmitState({
-        status: "success",
-        message: `Invoice ${created.invoiceNumber} generated successfully.`,
+      toast.success(`Invoice ${created.invoiceNumber} generated.`, {
+        id: toastId,
       });
       router.push(`/invoices/${created.id}`);
       router.refresh();
     } catch (error) {
-      setSubmitState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Failed to create invoice.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create invoice.",
+        { id: toastId },
+      );
+      setPending(false);
     }
   }
 
@@ -92,11 +87,6 @@ export function CreateInvoiceForm({
           This screen is the separate single-invoice generation path. It only
           works from policies that do not already have an invoice.
         </p>
-        {submitState.status !== "idle" ? (
-          <div className={`submit-banner submit-${submitState.status}`}>
-            {submitState.message}
-          </div>
-        ) : null}
       </section>
 
       <div className="form-layout">
@@ -207,9 +197,7 @@ export function CreateInvoiceForm({
             </div>
             <div>
               <span>Amount</span>
-              <strong>
-                ₹ {Number(amount || 0).toLocaleString("en-IN")}
-              </strong>
+              <strong>₹ {Number(amount || 0).toLocaleString("en-IN")}</strong>
             </div>
             <div>
               <span>PDF action</span>
@@ -220,11 +208,20 @@ export function CreateInvoiceForm({
       </div>
 
       <div className="action-row">
-        <button className="ghost-button" type="button" onClick={() => router.push("/invoices")}>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => router.push("/invoices")}
+        >
           Back to invoice workspace
         </button>
-        <button className="primary-button" type="button" onClick={handleCreateInvoice}>
-          {submitState.status === "saving" ? "Generating..." : "Generate invoice"}
+        <button
+          className="primary-button"
+          type="button"
+          onClick={handleCreateInvoice}
+          disabled={pending}
+        >
+          {pending ? "Generating..." : "Generate invoice"}
         </button>
       </div>
     </div>

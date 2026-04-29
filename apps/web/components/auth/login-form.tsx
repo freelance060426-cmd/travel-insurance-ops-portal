@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 
 export function LoginForm() {
@@ -10,24 +11,23 @@ export function LoginForm() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("admin@travel-ops.local");
   const [password, setPassword] = useState("admin123");
-  const [state, setState] = useState<{
-    status: "idle" | "loading" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setState({ status: "loading", message: "Signing in..." });
+    setPending(true);
+    const toastId = toast.loading("Signing in...");
 
     try {
       await signIn({ email, password });
+      toast.success("Signed in.", { id: toastId });
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
-      setState({
-        status: "error",
-        message: error instanceof Error ? error.message : "Login failed.",
+      toast.error(error instanceof Error ? error.message : "Login failed.", {
+        id: toastId,
       });
+      setPending(false);
     }
   }
 
@@ -95,19 +95,14 @@ export function LoginForm() {
             />
           </label>
 
-          {state.status !== "idle" ? (
-            <div className={`submit-banner submit-${state.status === "error" ? "error" : "saving"}`}>
-              {state.message}
-            </div>
-          ) : null}
-
-          <button className="primary-button" type="submit">
-            {state.status === "loading" ? "Signing in..." : "Sign in"}
+          <button className="primary-button" type="submit" disabled={pending}>
+            {pending ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <div className="lookup-banner">
-          Local default: <strong>admin@travel-ops.local</strong> / <strong>admin123</strong>
+          Local default: <strong>admin@travel-ops.local</strong> /{" "}
+          <strong>admin123</strong>
         </div>
       </section>
     </main>

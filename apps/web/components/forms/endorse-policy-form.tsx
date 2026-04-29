@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { endorsePolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -33,7 +34,11 @@ type EndorsePolicyViewModel = {
   }>;
 };
 
-export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }) {
+export function EndorsePolicyForm({
+  policy,
+}: {
+  policy: EndorsePolicyViewModel;
+}) {
   const router = useRouter();
   const { token } = useAuth();
   const [startDate, setStartDate] = useState(policy.startDate);
@@ -53,10 +58,7 @@ export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }
       premium: traveller.premium,
     })),
   );
-  const [submitState, setSubmitState] = useState<{
-    status: "idle" | "saving" | "success" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   const changeSummary = useMemo(() => {
     return [
@@ -86,41 +88,38 @@ export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }
   }
 
   async function handleSaveEndorsement() {
-    setSubmitState({
-      status: "saving",
-      message: "Saving endorsement...",
-    });
+    setPending(true);
+    const toastId = toast.loading("Saving endorsement...");
 
     try {
-      await endorsePolicy(policy.id, {
-        startDate,
-        endDate,
-        reason,
-        preferredPlan: planOverride,
-        travellers: travellers.map((traveller) => ({
-          travellerName: traveller.name,
-          passportNumber: traveller.passport,
-          ageOrDob: traveller.ageOrDob,
-          planName: traveller.plan,
-          premiumAmount:
-            Number(traveller.premium.replace(/[^\d.]/g, "")) || 0,
-        })),
-      }, token ?? undefined);
+      await endorsePolicy(
+        policy.id,
+        {
+          startDate,
+          endDate,
+          reason,
+          preferredPlan: planOverride,
+          travellers: travellers.map((traveller) => ({
+            travellerName: traveller.name,
+            passportNumber: traveller.passport,
+            ageOrDob: traveller.ageOrDob,
+            planName: traveller.plan,
+            premiumAmount:
+              Number(traveller.premium.replace(/[^\d.]/g, "")) || 0,
+          })),
+        },
+        token ?? undefined,
+      );
 
-      setSubmitState({
-        status: "success",
-        message: "Endorsement saved successfully.",
-      });
+      toast.success("Endorsement saved.", { id: toastId });
       router.push(`/policies/${policy.id}`);
       router.refresh();
     } catch (error) {
-      setSubmitState({
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to save endorsement.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save endorsement.",
+        { id: toastId },
+      );
+      setPending(false);
     }
   }
 
@@ -135,11 +134,6 @@ export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }
             details, keep a change summary, and save endorsement changes without
             mixing in full insurer-side lifecycle complexity yet.
           </p>
-          {submitState.status !== "idle" ? (
-            <div className={`submit-banner submit-${submitState.status}`}>
-              {submitState.message}
-            </div>
-          ) : null}
         </div>
 
         <div className="hero-panel__meta">
@@ -296,10 +290,9 @@ export function EndorsePolicyForm({ policy }: { policy: EndorsePolicyViewModel }
           className="primary-button"
           type="button"
           onClick={handleSaveEndorsement}
+          disabled={pending}
         >
-          {submitState.status === "saving"
-            ? "Saving..."
-            : "Save endorsement draft"}
+          {pending ? "Saving..." : "Save endorsement draft"}
         </button>
       </div>
     </div>

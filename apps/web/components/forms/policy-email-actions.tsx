@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { sendPolicyEmail, type ApiEmailLog } from "@/lib/api";
 
@@ -36,15 +37,13 @@ export function PolicyEmailActions({
     `Please find attached the policy PDF for ${policyNumber}.`,
   );
   const [logs, setLogs] = useState(initialLogs);
-  const [state, setState] = useState<{
-    status: "idle" | "loading" | "success" | "error";
-    message: string;
-  }>({ status: "idle", message: "" });
+  const [pending, setPending] = useState(false);
 
   const recentLogs = useMemo(() => logs.slice(0, 5), [logs]);
 
   async function handleSendEmail() {
-    setState({ status: "loading", message: "Sending policy email..." });
+    setPending(true);
+    const toastId = toast.loading("Sending policy email...");
 
     try {
       const result = await sendPolicyEmail(
@@ -58,16 +57,16 @@ export function PolicyEmailActions({
       );
 
       setLogs((current) => [result.log, ...current]);
-      setState({
-        status: "success",
-        message: `Email sent to ${result.log.recipientEmail}.`,
+      toast.success(`Email sent to ${result.log.recipientEmail}.`, {
+        id: toastId,
       });
     } catch (error) {
-      setState({
-        status: "error",
-        message:
-          error instanceof Error ? error.message : "Policy email request failed.",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Policy email request failed.",
+        { id: toastId },
+      );
+    } finally {
+      setPending(false);
     }
   }
 
@@ -108,24 +107,15 @@ export function PolicyEmailActions({
       </label>
 
       <div className="action-button-row">
-        <button className="primary-button" type="button" onClick={handleSendEmail}>
-          {state.status === "loading" ? "Sending..." : "Send policy email"}
+        <button
+          className="primary-button"
+          type="button"
+          onClick={handleSendEmail}
+          disabled={pending}
+        >
+          {pending ? "Sending..." : "Send policy email"}
         </button>
       </div>
-
-      {state.status !== "idle" ? (
-        <div
-          className={`submit-banner submit-${
-            state.status === "error"
-              ? "error"
-              : state.status === "success"
-                ? "success"
-                : "saving"
-          }`}
-        >
-          {state.message}
-        </div>
-      ) : null}
 
       {recentLogs.length ? (
         <div className="document-list">
