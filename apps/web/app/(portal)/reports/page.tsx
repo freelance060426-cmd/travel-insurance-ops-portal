@@ -52,6 +52,10 @@ export default async function ReportsPage({
     (sum, partner) => sum + partner.totalPremium,
     0,
   );
+  const totalInvoices = partnerReport.reduce(
+    (sum, partner) => sum + partner.invoiceCount,
+    0,
+  );
 
   return (
     <div className="page-stack">
@@ -65,7 +69,7 @@ export default async function ReportsPage({
           </p>
         </div>
         <div className="hero-panel__meta">
-          <span className="portal-chip">
+          <span className="portal-chip portal-chip--strong">
             {policyReport?.total ?? 0} policies
           </span>
           <span className="portal-chip">
@@ -74,25 +78,53 @@ export default async function ReportsPage({
         </div>
       </section>
 
-      <section className="content-card">
-        <form className="filter-grid filter-grid--secondary" action="/reports">
-          <label>
-            <span>Issue from</span>
-            <input
-              type="date"
-              name="issueFrom"
-              defaultValue={selected.issueFrom}
-            />
-          </label>
-          <label>
-            <span>Issue to</span>
-            <input type="date" name="issueTo" defaultValue={selected.issueTo} />
-          </label>
-          <div className="action-button-row">
-            <button className="primary-button" type="submit">
-              Apply date range
-            </button>
-            <PolicyExportButton params={selected} />
+      <section className="metric-grid metric-grid--compact">
+        <article className="metric-card tone-teal">
+          <p>Total policies</p>
+          <strong>{policyReport?.total ?? 0}</strong>
+          <span>Matching current report range</span>
+        </article>
+        <article className="metric-card tone-blue">
+          <p>Partner rows</p>
+          <strong>{partnerReport.length}</strong>
+          <span>Partners with policy activity</span>
+        </article>
+        <article className="metric-card tone-amber">
+          <p>Invoice count</p>
+          <strong>{totalInvoices}</strong>
+          <span>Invoices linked to reported partners</span>
+        </article>
+      </section>
+
+      <section className="content-card report-filter-card">
+        <form className="filter-toolbar filter-toolbar--reports" action="/reports">
+          <div className="filter-toolbar__fields">
+            <label className="filter-field">
+              <span>Issue from</span>
+              <input
+                type="date"
+                name="issueFrom"
+                defaultValue={selected.issueFrom}
+              />
+            </label>
+            <label className="filter-field">
+              <span>Issue to</span>
+              <input type="date" name="issueTo" defaultValue={selected.issueTo} />
+            </label>
+          </div>
+          <div className="filter-toolbar__actions">
+            <div className="filter-summary filter-summary--compact">
+              <span>Report scope</span>
+              <strong>
+                {selected.issueFrom || selected.issueTo ? "Date filtered" : "All dates"}
+              </strong>
+            </div>
+            <div className="action-button-row">
+              <button className="primary-button" type="submit">
+                Apply date range
+              </button>
+              <PolicyExportButton params={selected} />
+            </div>
           </div>
         </form>
 
@@ -101,12 +133,13 @@ export default async function ReportsPage({
         ) : null}
       </section>
 
-      <section className="content-card">
+      <section className="content-card data-table-card">
         <div className="section-heading">
           <div>
             <p className="portal-eyebrow">PARTNER REPORT</p>
             <h3>Partner-wise policy and invoice totals</h3>
           </div>
+          <span className="table-count-pill">{partnerReport.length} rows</span>
         </div>
 
         <div className="table-shell">
@@ -140,7 +173,13 @@ export default async function ReportsPage({
               ))}
               {!partnerReport.length ? (
                 <tr>
-                  <td colSpan={6}>No partner report data found.</td>
+                  <td colSpan={6}>
+                    <div className="data-empty-state">
+                      <span>No partner activity</span>
+                      <strong>No partner report data found.</strong>
+                      <p>Change the date range or create policies to populate this report.</p>
+                    </div>
+                  </td>
                 </tr>
               ) : null}
             </tbody>
@@ -148,12 +187,13 @@ export default async function ReportsPage({
         </div>
       </section>
 
-      <section className="content-card">
+      <section className="content-card data-table-card">
         <div className="section-heading">
           <div>
             <p className="portal-eyebrow">POLICY REPORT</p>
             <h3>Date-wise policy records</h3>
           </div>
+          <span className="table-count-pill">{policyReport?.rows.length ?? 0} rows</span>
         </div>
 
         <div className="table-shell">
@@ -191,7 +231,13 @@ export default async function ReportsPage({
               ))}
               {!policyReport?.rows.length ? (
                 <tr>
-                  <td colSpan={7}>No policy report rows found.</td>
+                  <td colSpan={7}>
+                    <div className="data-empty-state">
+                      <span>No policy rows</span>
+                      <strong>No policy report rows found.</strong>
+                      <p>Change the report filters or create new policy records.</p>
+                    </div>
+                  </td>
                 </tr>
               ) : null}
             </tbody>

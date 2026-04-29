@@ -78,11 +78,15 @@ export default async function PoliciesPage({
 
   return (
     <div className="page-stack">
-      <section className="content-card">
+      <section className="content-card policy-search-card">
         <div className="section-heading">
           <div>
             <p className="portal-eyebrow">POLICY SEARCH</p>
             <h1 className="page-title">Find and manage policy records</h1>
+            <p className="section-note">
+              Search by policy number, traveller, passport, or partner, then
+              open the record for endorsement, PDF, document, and email actions.
+            </p>
           </div>
 
           <Link className="primary-button" href="/policies/new">
@@ -90,68 +94,77 @@ export default async function PoliciesPage({
           </Link>
         </div>
 
-        <form className="filter-grid" action="/policies">
-          <label>
-            <span>Policy / Passport / Traveller</span>
-            <input
-              name="search"
-              placeholder="Search policy, passport, traveller, partner"
-              defaultValue={selected.search}
-            />
-          </label>
-          <label>
-            <span>Partner</span>
-            <select name="partnerId" defaultValue={selected.partnerId}>
-              <option value="">All partners</option>
-              {partners.map((partner) => (
-                <option key={partner.id} value={partner.id}>
-                  {partner.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Issue Date</span>
-            <input
-              type="date"
-              name="issueFrom"
-              defaultValue={selected.issueFrom}
-            />
-          </label>
-          <label>
-            <span>Status</span>
-            <select name="status" defaultValue={selected.status}>
-              <option value="">Any status</option>
-              <option value="DRAFT">Draft</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ENDORSED">Endorsed</option>
-              <option value="EXPIRED">Expired</option>
-            </select>
-          </label>
-          <div className="action-button-row">
-            <button className="primary-button" type="submit">
-              Apply filters
-            </button>
-            <Link className="ghost-button" href="/policies">
-              Clear
-            </Link>
-            <PolicyExportButton params={selected} />
+        <form className="filter-toolbar" action="/policies">
+          <div className="filter-toolbar__fields">
+            <label className="filter-field filter-field--wide">
+              <span>Policy / Passport / Traveller</span>
+              <input
+                name="search"
+                placeholder="Search policy, passport, traveller, partner"
+                defaultValue={selected.search}
+              />
+            </label>
+            <label className="filter-field">
+              <span>Partner</span>
+              <select name="partnerId" defaultValue={selected.partnerId}>
+                <option value="">All partners</option>
+                {partners.map((partner) => (
+                  <option key={partner.id} value={partner.id}>
+                    {partner.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="filter-field">
+              <span>Issue Date</span>
+              <input
+                type="date"
+                name="issueFrom"
+                defaultValue={selected.issueFrom}
+              />
+            </label>
+            <label className="filter-field">
+              <span>Status</span>
+              <select name="status" defaultValue={selected.status}>
+                <option value="">Any status</option>
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ENDORSED">Endorsed</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
+            </label>
+          </div>
+          <div className="filter-toolbar__actions">
+            <div className="filter-summary filter-summary--compact">
+              <span>Filtered result</span>
+              <strong>{rows.length} policies</strong>
+            </div>
+            <div className="action-button-row">
+              <button className="primary-button" type="submit">
+                Apply filters
+              </button>
+              <Link className="ghost-button" href="/policies">
+                Clear
+              </Link>
+              <PolicyExportButton params={selected} />
+            </div>
           </div>
         </form>
-
-        <div className="filter-grid filter-grid--secondary">
-          <div className="filter-summary">
-            <span>Filtered result</span>
-            <strong>{rows.length} policies found</strong>
-          </div>
-        </div>
 
         {error ? (
           <div className="submit-banner submit-error">{error}</div>
         ) : null}
       </section>
 
-      <section className="content-card">
+      <section className="content-card data-table-card">
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">SEARCH RESULTS</p>
+            <h3>Policy records</h3>
+          </div>
+          <span className="table-count-pill">{rows.length} rows</span>
+        </div>
+
         <div className="table-shell">
           <table className="data-table">
             <thead>
@@ -194,7 +207,16 @@ export default async function PoliciesPage({
               ))}
               {!rows.length ? (
                 <tr>
-                  <td colSpan={8}>No policies match the current filters.</td>
+                  <td colSpan={8}>
+                    <div className="data-empty-state">
+                      <span>No matching policies</span>
+                      <strong>No policies match the current filters.</strong>
+                      <p>
+                        Try clearing filters or searching by a different policy,
+                        passport, traveller, or partner value.
+                      </p>
+                    </div>
+                  </td>
                 </tr>
               ) : null}
             </tbody>
