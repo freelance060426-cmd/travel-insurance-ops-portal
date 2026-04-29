@@ -208,10 +208,17 @@ The UI polish pass is successful when:
 
 ## Current Active Recommendation
 
-Start with Pass 1 now:
+Pass 1 is complete:
 - design tokens
-- typography
-- app shell
-- dashboard
+- typography polish
+- app shell polish
+- dashboard operations-home refresh
+- initial workflow affordances for policy creation and invoice generation
 
-This gives the fastest visible improvement while keeping risk low.
+Current active work should move to Pass 2:
+- policy creation guided workflow UX
+- invoice workspace generation and dispatch clarity
+- data table and filter polish
+
+Detailed Pass 2 plan:
+- `.agents/plans/ui-ux-pass-2-workflow-plan.md`

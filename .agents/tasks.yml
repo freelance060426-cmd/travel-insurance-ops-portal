@@ -1,12 +1,18 @@
 project: travel-insurance-ops-portal
 
 current_focus:
-  - UI/UX redesign pass 1: design tokens, typography, app shell, dashboard
-  - keep existing workflows stable while improving product polish
-  - make policy creation and invoice workspace feel more guided after shell/dashboard
+  - UI/UX pass 2 validated and ready for next product polish cycle
+  - keep invoice generation disabled states stable after validation fix
+  - keep workflow UX stable after policy creation and invoice workspace polish
   - keep backend integration-ready for later Bajaj work
 
 recently_fixed:
+  - invoice generation buttons now disable correctly when no eligible policy selection can generate invoices
+  - full UI/UX pass 2 desktop and mobile browser validation across main workflows
+  - policy search filters, report filters, table scanability, row counters, and empty states
+  - invoice workspace generation setup, selection clarity, empty state, and dispatch action polish
+  - policy creation guided workflow layout with sticky review summary and final save bar
+  - UI/UX pass 1 foundation with design tokens, typography, shell, and dashboard polish
   - protect partner APIs and tighten authenticated access
   - remove hardcoded localhost file and PDF URLs
   - add upload file type and size limits
@@ -28,16 +34,19 @@ remaining_review_findings:
 
 active_ui_ux_plan:
   plan_file: .agents/plans/ui-ux-redesign-plan.md
+  detailed_current_plan_file: .agents/plans/ui-ux-pass-2-workflow-plan.md
   approach: refine_existing_product_not_full_rebuild
-  current_pass:
+  completed_pass:
     - design_system_tokens
     - typography_polish
     - app_shell_polish
     - dashboard_operations_home_refresh
-  next_pass:
-    - policy_creation_workflow_stepper
+  current_pass:
+    - policy_creation_guided_workflow_ux
     - invoice_workspace_generation_dispatch_clarity
-    - reports_and_table_data_ux
+    - data_tables_and_filters_ux
+  immediate_next_task:
+    - decide next product readiness slice after UI/UX pass 2
 
 phase_1:
   - authentication_and_roles
@@ -120,11 +129,14 @@ completed:
   - mobile_shell_layout_polish
   - role_guard_foundation_and_super_admin_partner_create
   - automatic_policy_expiry_job
+  - ui_ux_pass_1_design_system_shell_dashboard
+  - policy_creation_layout_and_workflow_polish
+  - invoice_workspace_generation_dispatch_polish
+  - tables_filters_and_reports_ux_polish
+  - full_ui_pass_2_browser_validation
+  - invoice_generation_empty_selection_disabled_state_fix
 
 open_items:
-  - ui_ux_redesign_pass_1
-  - policy_creation_guided_workflow_ux
-  - invoice_workspace_dispatch_ux_refinement
   - partner_scoped_visibility_model
   - production_object_storage_decision
   - final_manual_policy_field_list
