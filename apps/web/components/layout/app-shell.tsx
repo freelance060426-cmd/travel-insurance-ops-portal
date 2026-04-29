@@ -7,12 +7,10 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   BarChart3,
-  FileCheck2,
   FilePlus2,
   LayoutGrid,
   Receipt,
   Search,
-  ShieldCheck,
   Users2,
 } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -139,15 +137,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="portal-sidebar__card">
-          <p className="portal-eyebrow">PHASE 1</p>
-          <strong>Manual-first, client-ready</strong>
-          <p>
-            Brand-aligned operations with invoice generation, PDF delivery, and
-            insurer-ready workflow boundaries.
-          </p>
-        </div>
       </aside>
 
       <div className="portal-main">
@@ -158,15 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p>{currentModule.description}</p>
           </div>
 
-          <div className="portal-topbar__status">
-            <div className="portal-chip">
-              <ShieldCheck size={15} />
-              <span>Protected session</span>
-            </div>
-            <div className="portal-chip portal-chip--strong">
-              <FileCheck2 size={15} />
-              <span>PDF + email ready</span>
-            </div>
+          <div className="portal-topbar__status portal-topbar__status--compact">
             <div className="portal-user-meta">
               <div className="portal-user-meta__text">
                 <strong>{user?.name ?? "User"}</strong>
