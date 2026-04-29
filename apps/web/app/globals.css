@@ -901,7 +901,19 @@ select {
 .primary-button:disabled,
 .ghost-button:disabled {
   cursor: not-allowed;
-  opacity: 0.68;
+  opacity: 1;
+}
+
+.primary-button:disabled {
+  background: #dce7ea;
+  color: #6d7f86;
+  box-shadow: none;
+}
+
+.ghost-button:disabled {
+  background: #f6fafb;
+  color: #829399;
+  border-color: #dde8eb;
 }
 
 .ghost-button {
