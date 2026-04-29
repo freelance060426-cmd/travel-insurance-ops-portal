@@ -47,7 +47,11 @@ body {
   padding: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(104, 212, 232, 0.08), transparent 22%),
+    radial-gradient(
+      circle at top left,
+      rgba(104, 212, 232, 0.08),
+      transparent 22%
+    ),
     linear-gradient(180deg, #fbfdfd 0%, var(--bg) 42%);
   color: var(--ink);
   font-family: var(--font-body);
@@ -66,7 +70,8 @@ select {
 }
 
 .portal-shell {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 244px minmax(0, 1fr);
 }
@@ -74,10 +79,15 @@ select {
 .portal-sidebar {
   position: sticky;
   top: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   padding: 22px 18px;
   background:
-    radial-gradient(circle at 10% 0%, rgba(104, 212, 232, 0.11), transparent 34%),
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(104, 212, 232, 0.11),
+      transparent 34%
+    ),
     linear-gradient(180deg, #081113 0%, #071011 100%);
   color: #e5eef7;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -148,7 +158,11 @@ select {
   margin-top: 28px;
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.04)
+  );
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -166,6 +180,8 @@ select {
 
 .portal-main {
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
@@ -293,7 +309,11 @@ select {
   overflow: hidden;
   position: relative;
   background:
-    radial-gradient(circle at 95% 0%, rgba(104, 212, 232, 0.14), transparent 30%),
+    radial-gradient(
+      circle at 95% 0%,
+      rgba(104, 212, 232, 0.14),
+      transparent 30%
+    ),
     #ffffff;
   color: var(--ink);
   border-color: var(--line);
@@ -317,7 +337,11 @@ select {
   inset: 0;
   background:
     linear-gradient(180deg, transparent, rgba(104, 212, 232, 0.035)),
-    radial-gradient(circle at 78% 22%, rgba(104, 212, 232, 0.09), transparent 18%);
+    radial-gradient(
+      circle at 78% 22%,
+      rgba(104, 212, 232, 0.09),
+      transparent 18%
+    );
   pointer-events: none;
 }
 
@@ -396,7 +420,9 @@ select {
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: 0 8px 22px rgba(24, 33, 47, 0.035);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .metric-card:hover {
@@ -1351,7 +1377,11 @@ select {
   grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
   padding: 24px;
   background:
-    radial-gradient(circle at top left, rgba(104, 212, 232, 0.16), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(104, 212, 232, 0.16),
+      transparent 24%
+    ),
     linear-gradient(135deg, #071012 0%, #0f1718 40%, #152b31 100%);
   gap: 28px;
 }
@@ -1363,7 +1393,11 @@ select {
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(5, 11, 12, 0.1), rgba(5, 11, 12, 0.5)),
-    radial-gradient(circle at 20% 20%, rgba(104, 212, 232, 0.24), transparent 22%),
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(104, 212, 232, 0.24),
+      transparent 22%
+    ),
     linear-gradient(160deg, #12363d 0%, #0c1719 45%, #081214 100%);
   border: 1px solid rgba(104, 212, 232, 0.14);
 }
@@ -1375,19 +1409,49 @@ select {
   inset: auto 0 0 0;
   height: 42%;
   background:
-    radial-gradient(circle at 16% 62%, rgba(255, 255, 255, 0.18), transparent 12%),
-    radial-gradient(circle at 44% 36%, rgba(255, 255, 255, 0.16), transparent 10%),
+    radial-gradient(
+      circle at 16% 62%,
+      rgba(255, 255, 255, 0.18),
+      transparent 12%
+    ),
+    radial-gradient(
+      circle at 44% 36%,
+      rgba(255, 255, 255, 0.16),
+      transparent 10%
+    ),
     linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.22)),
     linear-gradient(120deg, rgba(104, 212, 232, 0.1), transparent 28%),
     linear-gradient(180deg, #0f2429, #091214);
-  clip-path: polygon(0 50%, 12% 34%, 24% 42%, 36% 18%, 50% 38%, 66% 12%, 78% 30%, 100% 0, 100% 100%, 0 100%);
+  clip-path: polygon(
+    0 50%,
+    12% 34%,
+    24% 42%,
+    36% 18%,
+    50% 38%,
+    66% 12%,
+    78% 30%,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
 }
 
 .login-scene::after {
   height: 28%;
   opacity: 0.78;
   background: linear-gradient(180deg, #0c1719, #06090a);
-  clip-path: polygon(0 62%, 14% 48%, 29% 70%, 42% 32%, 58% 74%, 72% 42%, 86% 58%, 100% 36%, 100% 100%, 0 100%);
+  clip-path: polygon(
+    0 62%,
+    14% 48%,
+    29% 70%,
+    42% 32%,
+    58% 74%,
+    72% 42%,
+    86% 58%,
+    100% 36%,
+    100% 100%,
+    0 100%
+  );
 }
 
 .login-scene__overlay {
@@ -1395,7 +1459,11 @@ select {
   inset: 0;
   background:
     linear-gradient(90deg, rgba(6, 9, 10, 0.1), rgba(6, 9, 10, 0.44)),
-    radial-gradient(circle at top right, rgba(104, 212, 232, 0.2), transparent 24%);
+    radial-gradient(
+      circle at top right,
+      rgba(104, 212, 232, 0.2),
+      transparent 24%
+    );
 }
 
 .login-brand-block {
@@ -1767,12 +1835,21 @@ select {
 @media (max-width: 860px) {
   .portal-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .portal-sidebar {
     position: static;
+    height: auto;
+    overflow: visible;
     min-height: auto;
     padding: 18px 20px;
+  }
+
+  .portal-main {
+    height: auto;
+    overflow: visible;
   }
 
   .portal-brand {
