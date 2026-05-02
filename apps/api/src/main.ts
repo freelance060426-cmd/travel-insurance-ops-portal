@@ -26,7 +26,17 @@ async function bootstrap() {
         return;
       }
 
-      callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
     },
     credentials: true,
   });
