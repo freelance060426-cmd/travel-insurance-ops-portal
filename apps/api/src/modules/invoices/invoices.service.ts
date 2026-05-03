@@ -55,8 +55,9 @@ export class InvoicesService {
     }
   }
 
-  list() {
+  list(scopePartnerId?: string | null) {
     return this.prisma.invoice.findMany({
+      where: scopePartnerId ? { partnerId: scopePartnerId } : undefined,
       include: {
         partner: true,
         policies: {

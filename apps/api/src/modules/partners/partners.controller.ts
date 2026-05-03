@@ -7,8 +7,9 @@ import type { CreatePartnerDto } from "./dto/create-partner.dto";
 
 @Controller("partners")
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles("SUPER_ADMIN")
 export class PartnersController {
-  constructor(private readonly partnersService: PartnersService) {}
+  constructor(private readonly partnersService: PartnersService) { }
 
   @Get()
   listPartners() {
@@ -21,7 +22,6 @@ export class PartnersController {
   }
 
   @Post()
-  @Roles("SUPER_ADMIN")
   createPartner(@Body() body: CreatePartnerDto) {
     return this.partnersService.create(body);
   }

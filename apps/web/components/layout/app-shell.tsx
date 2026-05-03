@@ -16,12 +16,42 @@ import {
 import { useAuth } from "@/components/providers/auth-provider";
 
 const navigation = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/partners", label: "Partners", icon: Users2 },
-  { href: "/policies", label: "Policy Search", icon: Search },
-  { href: "/policies/new", label: "Create Policy", icon: FilePlus2 },
-  { href: "/invoices", label: "Invoices", icon: Receipt },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutGrid,
+    roles: ["SUPER_ADMIN", "PARTNER"],
+  },
+  {
+    href: "/partners",
+    label: "Partners",
+    icon: Users2,
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    href: "/policies",
+    label: "Policy Search",
+    icon: Search,
+    roles: ["SUPER_ADMIN", "PARTNER"],
+  },
+  {
+    href: "/policies/new",
+    label: "Create Policy",
+    icon: FilePlus2,
+    roles: ["SUPER_ADMIN", "PARTNER"],
+  },
+  {
+    href: "/invoices",
+    label: "Invoices",
+    icon: Receipt,
+    roles: ["SUPER_ADMIN", "PARTNER"],
+  },
+  {
+    href: "/reports",
+    label: "Reports",
+    icon: BarChart3,
+    roles: ["SUPER_ADMIN"],
+  },
 ];
 
 type ModuleContext = {
@@ -34,7 +64,8 @@ const moduleCopy: Record<string, ModuleContext> = {
   "/dashboard": {
     eyebrow: "COMMAND CENTER",
     title: "Daily operations control room",
-    description: "Track policies, invoices, PDFs, and client dispatch from one workspace.",
+    description:
+      "Track policies, invoices, PDFs, and client dispatch from one workspace.",
   },
   "/partners": {
     eyebrow: "NETWORK",
@@ -44,17 +75,20 @@ const moduleCopy: Record<string, ModuleContext> = {
   "/policies": {
     eyebrow: "POLICY DESK",
     title: "Policy search and servicing",
-    description: "Find policies, inspect history, and continue service actions.",
+    description:
+      "Find policies, inspect history, and continue service actions.",
   },
   "/policies/new": {
     eyebrow: "NEW POLICY",
     title: "Create travel policy",
-    description: "Capture policy, traveller, and plan details through a guided flow.",
+    description:
+      "Capture policy, traveller, and plan details through a guided flow.",
   },
   "/invoices": {
     eyebrow: "BILLING DESK",
     title: "Invoice generation and dispatch",
-    description: "Generate, download, and send invoices from eligible policy records.",
+    description:
+      "Generate, download, and send invoices from eligible policy records.",
   },
   "/reports": {
     eyebrow: "REPORTING",
@@ -121,21 +155,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="portal-nav">
-          {navigation.map((item) => {
-            const isActive = isActiveRoute(pathname, item.href);
-            const Icon = item.icon;
+          {navigation
+            .filter((item) => item.roles.includes(user?.role ?? "SUPER_ADMIN"))
+            .map((item) => {
+              const isActive = isActiveRoute(pathname, item.href);
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`portal-nav__link ${isActive ? "is-active" : ""}`}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`portal-nav__link ${isActive ? "is-active" : ""}`}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
         </nav>
       </aside>
 
@@ -156,7 +192,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="portal-avatar">
                 {(user?.name ?? "U").slice(0, 2).toUpperCase()}
               </div>
-              <button className="ghost-button" type="button" onClick={handleLogout}>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={handleLogout}
+              >
                 Logout
               </button>
             </div>

@@ -5,17 +5,22 @@ import {
   type ApiEligibleInvoicePolicy,
   type ApiInvoice,
 } from "@/lib/api";
-import { getServerAuthToken } from "@/lib/server-auth";
+import { getServerAuthToken, decodeTokenPayload } from "@/lib/server-auth";
 
 export default async function InvoicesPage() {
   const token = await getServerAuthToken();
+  const payload = decodeTokenPayload(token);
+  const userRole = payload?.role ?? "SUPER_ADMIN";
+
   let invoices: ApiInvoice[] = [];
   let eligiblePolicies: ApiEligibleInvoicePolicy[] = [];
   let error = "";
 
   try {
     invoices = await fetchInvoices(token ?? undefined);
-    eligiblePolicies = await fetchEligibleInvoicePolicies(token ?? undefined);
+    if (userRole === "SUPER_ADMIN") {
+      eligiblePolicies = await fetchEligibleInvoicePolicies(token ?? undefined);
+    }
   } catch (caught) {
     error =
       caught instanceof Error
@@ -35,6 +40,7 @@ export default async function InvoicesPage() {
       <InvoiceManagementWorkspace
         initialInvoices={invoices}
         initialEligiblePolicies={eligiblePolicies}
+        userRole={userRole}
       />
     </div>
   );

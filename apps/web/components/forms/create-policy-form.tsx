@@ -117,19 +117,28 @@ function freshTraveller(): TravellerDraft {
 export function CreatePolicyForm({
   initialPartners,
   initialPlans,
+  userRole = "SUPER_ADMIN",
+  userPartnerId = null,
 }: {
   initialPartners: ApiPartner[];
   initialPlans: ApiPlan[];
+  userRole?: string;
+  userPartnerId?: string | null;
 }) {
   const router = useRouter();
   const { token } = useAuth();
+
+  const isPartnerUser = userRole === "PARTNER";
 
   const [step, setStep] = useState(1);
 
   const [trip, setTrip] = useState<TripDraft>({
     travelRegion: "",
     destination: "",
-    partnerId: initialPartners[0]?.id ?? "",
+    partnerId:
+      isPartnerUser && userPartnerId
+        ? userPartnerId
+        : (initialPartners[0]?.id ?? ""),
     startDate: today(),
     endDate: "",
   });
@@ -266,7 +275,7 @@ export function CreatePolicyForm({
   );
 
   async function handleSave() {
-    if (!trip.partnerId) {
+    if (!trip.partnerId && !isPartnerUser) {
       toast.error("Select a partner before saving.");
       return;
     }
@@ -341,7 +350,7 @@ export function CreatePolicyForm({
 
   function goNext() {
     if (step === 1) {
-      if (!trip.partnerId) {
+      if (!trip.partnerId && !isPartnerUser) {
         toast.error("Select a partner to continue.");
         return;
       }
@@ -458,22 +467,24 @@ export function CreatePolicyForm({
                 onChange={(e) => updateTrip("destination", e.target.value)}
               />
             </label>
-            <label>
-              <span>Partner *</span>
-              <select
-                value={trip.partnerId}
-                onChange={(e) => updateTrip("partnerId", e.target.value)}
-              >
-                <option value="">Select partner</option>
-                {initialPartners
-                  .filter((p) => p.status === "ACTIVE")
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.partnerCode})
-                    </option>
-                  ))}
-              </select>
-            </label>
+            {!isPartnerUser && (
+              <label>
+                <span>Partner *</span>
+                <select
+                  value={trip.partnerId}
+                  onChange={(e) => updateTrip("partnerId", e.target.value)}
+                >
+                  <option value="">Select partner</option>
+                  {initialPartners
+                    .filter((p) => p.status === "ACTIVE")
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.partnerCode})
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
             <label>
               <span>Travel Start *</span>
               <input

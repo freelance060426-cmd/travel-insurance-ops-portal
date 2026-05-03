@@ -126,10 +126,13 @@ function InvoiceRowActions({
 export function InvoiceManagementWorkspace({
   initialInvoices,
   initialEligiblePolicies,
+  userRole = "SUPER_ADMIN",
 }: {
   initialInvoices: ApiInvoice[];
   initialEligiblePolicies: ApiEligibleInvoicePolicy[];
+  userRole?: string;
 }) {
+  const isAdmin = userRole === "SUPER_ADMIN";
   const { token } = useAuth();
   const [invoices, setInvoices] = useState(initialInvoices);
   const [eligiblePolicies, setEligiblePolicies] = useState(
@@ -287,218 +290,223 @@ export function InvoiceManagementWorkspace({
         </div>
       </section>
 
-      <section className="content-card invoice-generation-card">
-        <div className="section-heading">
-          <div>
-            <p className="portal-eyebrow">GENERATION SETUP</p>
-            <h3>Confirm rules before creating invoices</h3>
-            <p className="section-note">
-              Select eligible policies below to generate a combined invoice.
-            </p>
-          </div>
-          <Link className="ghost-button" href="/invoices/new">
-            Single generate form
-          </Link>
-        </div>
-
-        <div className="invoice-generation-layout">
-          <div className="invoice-setup-panel">
-            <div className="filter-grid filter-grid--secondary invoice-setup-fields">
-              <label>
-                <span>Invoice Date</span>
-                <input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(event) => setInvoiceDate(event.target.value)}
-                />
-              </label>
-              <label className="invoice-notes">
-                <span>Generation note</span>
-                <textarea
-                  rows={2}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="generation-readiness">
-              <div>
-                <span>Selected policies</span>
-                <strong>{selectedPolicyIds.length}</strong>
-              </div>
-              <div>
-                <span>Invoice records to create</span>
-                <strong>{selectedPolicyIds.length}</strong>
-              </div>
-              <div>
-                <span>Selected premium value</span>
-                <strong>
-                  ₹ {selectedPremiumTotal.toLocaleString("en-IN")}
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <aside className="invoice-rule-panel">
-            <p className="portal-eyebrow">GENERATION MODE</p>
-            <div className="invoice-mode-grid">
-              <div
-                className={`invoice-mode-card ${
-                  selectedPolicyIds.length === 1 ? "is-ready" : ""
-                }`}
-              >
-                <span>Single</span>
-                <strong>Exactly 1 policy</strong>
-                <small>Creates one invoice for one selected policy.</small>
-              </div>
-              <div
-                className={`invoice-mode-card ${
-                  selectedPolicyIds.length >= 2 ? "is-ready" : ""
-                }`}
-              >
-                <span>Combined</span>
-                <strong>2 or more policies</strong>
-                <small>
-                  Creates one invoice covering all selected policies.
-                </small>
-              </div>
-            </div>
-            <div className="invoice-selection-summary">
-              <span>Current selection</span>
-              <strong>
-                {selectedPolicyIds.length
-                  ? `${selectedPolicyIds.length} selected`
-                  : "No policies selected"}
-              </strong>
-              <small>
-                {selectedPolicies.length
-                  ? selectedPolicies
-                      .slice(0, 2)
-                      .map((policy) => policy.policyNumber)
-                      .join(", ") +
-                    (selectedPolicies.length > 2
-                      ? ` +${selectedPolicies.length - 2} more`
-                      : "")
-                  : "Choose policies below to unlock generation."}
-              </small>
-            </div>
-          </aside>
-        </div>
-
-        <div className="invoice-generate-bar">
-          <div>
-            <span>Generation action</span>
-            <strong>
-              {selectedPolicyIds.length === 0
-                ? "Select policies to continue"
-                : `${selectedPolicyIds.length} invoice${
-                    selectedPolicyIds.length === 1 ? "" : "s"
-                  } will be created`}
-            </strong>
-          </div>
-          <button
-            className="ghost-button"
-            type="button"
-            disabled={!canGenerateSingle}
-            onClick={() => handleGenerate("single")}
-          >
-            Generate Invoice
-          </button>
-          <button
-            className="primary-button"
-            type="button"
-            disabled={!canGenerateBulk}
-            onClick={() => handleGenerate("bulk")}
-          >
-            Generate Combined Invoice
-          </button>
-        </div>
-
-        <div className="invoice-selection-panel">
-          <div className="invoice-selection-toolbar">
+      {isAdmin && (
+        <section className="content-card invoice-generation-card">
+          <div className="section-heading">
             <div>
-              <p className="portal-eyebrow">ELIGIBLE POLICIES</p>
-              <h3>Choose policies without invoices</h3>
-            </div>
-            {eligiblePolicies.length ? (
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={toggleAllPolicies}
-              >
-                {allSelected ? "Clear selection" : "Select all eligible"}
-              </button>
-            ) : null}
-          </div>
-
-          {eligiblePolicies.length === 0 ? (
-            <div className="invoice-empty-state">
-              <span>No pending candidates</span>
-              <strong>Every eligible policy already has an invoice.</strong>
-              <p>
-                New policies will appear here automatically once they exist and
-                do not have an invoice yet.
+              <p className="portal-eyebrow">GENERATION SETUP</p>
+              <h3>Confirm rules before creating invoices</h3>
+              <p className="section-note">
+                Select eligible policies below to generate a combined invoice.
               </p>
             </div>
-          ) : (
-            <div className="table-shell">
-              <table className="data-table invoice-select-table">
-                <thead>
-                  <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleAllPolicies}
-                        aria-label="Select all eligible policies"
-                      />
-                    </th>
-                    <th>Policy No.</th>
-                    <th>Traveller</th>
-                    <th>Partner</th>
-                    <th>Travel</th>
-                    <th>Premium</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eligiblePolicies.map((policy) => {
-                    const isSelected = selectedPolicyIds.includes(policy.id);
+            <Link className="ghost-button" href="/invoices/new">
+              Single generate form
+            </Link>
+          </div>
 
-                    return (
-                      <tr
-                        key={policy.id}
-                        className={isSelected ? "is-selected" : ""}
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => togglePolicy(policy.id)}
-                            aria-label={`Select policy ${policy.policyNumber}`}
-                          />
-                        </td>
-                        <td>{policy.policyNumber}</td>
-                        <td>{policy.primaryTravellerName}</td>
-                        <td>{policy.partner.name}</td>
-                        <td>
-                          {formatTravelWindow(policy.startDate, policy.endDate)}
-                        </td>
-                        <td>
-                          ₹{" "}
-                          {Number(policy.premiumAmount ?? 0).toLocaleString(
-                            "en-IN",
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div className="invoice-generation-layout">
+            <div className="invoice-setup-panel">
+              <div className="filter-grid filter-grid--secondary invoice-setup-fields">
+                <label>
+                  <span>Invoice Date</span>
+                  <input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(event) => setInvoiceDate(event.target.value)}
+                  />
+                </label>
+                <label className="invoice-notes">
+                  <span>Generation note</span>
+                  <textarea
+                    rows={2}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className="generation-readiness">
+                <div>
+                  <span>Selected policies</span>
+                  <strong>{selectedPolicyIds.length}</strong>
+                </div>
+                <div>
+                  <span>Invoice records to create</span>
+                  <strong>{selectedPolicyIds.length}</strong>
+                </div>
+                <div>
+                  <span>Selected premium value</span>
+                  <strong>
+                    ₹ {selectedPremiumTotal.toLocaleString("en-IN")}
+                  </strong>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      </section>
+
+            <aside className="invoice-rule-panel">
+              <p className="portal-eyebrow">GENERATION MODE</p>
+              <div className="invoice-mode-grid">
+                <div
+                  className={`invoice-mode-card ${
+                    selectedPolicyIds.length === 1 ? "is-ready" : ""
+                  }`}
+                >
+                  <span>Single</span>
+                  <strong>Exactly 1 policy</strong>
+                  <small>Creates one invoice for one selected policy.</small>
+                </div>
+                <div
+                  className={`invoice-mode-card ${
+                    selectedPolicyIds.length >= 2 ? "is-ready" : ""
+                  }`}
+                >
+                  <span>Combined</span>
+                  <strong>2 or more policies</strong>
+                  <small>
+                    Creates one invoice covering all selected policies.
+                  </small>
+                </div>
+              </div>
+              <div className="invoice-selection-summary">
+                <span>Current selection</span>
+                <strong>
+                  {selectedPolicyIds.length
+                    ? `${selectedPolicyIds.length} selected`
+                    : "No policies selected"}
+                </strong>
+                <small>
+                  {selectedPolicies.length
+                    ? selectedPolicies
+                        .slice(0, 2)
+                        .map((policy) => policy.policyNumber)
+                        .join(", ") +
+                      (selectedPolicies.length > 2
+                        ? ` +${selectedPolicies.length - 2} more`
+                        : "")
+                    : "Choose policies below to unlock generation."}
+                </small>
+              </div>
+            </aside>
+          </div>
+
+          <div className="invoice-generate-bar">
+            <div>
+              <span>Generation action</span>
+              <strong>
+                {selectedPolicyIds.length === 0
+                  ? "Select policies to continue"
+                  : `${selectedPolicyIds.length} invoice${
+                      selectedPolicyIds.length === 1 ? "" : "s"
+                    } will be created`}
+              </strong>
+            </div>
+            <button
+              className="ghost-button"
+              type="button"
+              disabled={!canGenerateSingle}
+              onClick={() => handleGenerate("single")}
+            >
+              Generate Invoice
+            </button>
+            <button
+              className="primary-button"
+              type="button"
+              disabled={!canGenerateBulk}
+              onClick={() => handleGenerate("bulk")}
+            >
+              Generate Combined Invoice
+            </button>
+          </div>
+
+          <div className="invoice-selection-panel">
+            <div className="invoice-selection-toolbar">
+              <div>
+                <p className="portal-eyebrow">ELIGIBLE POLICIES</p>
+                <h3>Choose policies without invoices</h3>
+              </div>
+              {eligiblePolicies.length ? (
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={toggleAllPolicies}
+                >
+                  {allSelected ? "Clear selection" : "Select all eligible"}
+                </button>
+              ) : null}
+            </div>
+
+            {eligiblePolicies.length === 0 ? (
+              <div className="invoice-empty-state">
+                <span>No pending candidates</span>
+                <strong>Every eligible policy already has an invoice.</strong>
+                <p>
+                  New policies will appear here automatically once they exist
+                  and do not have an invoice yet.
+                </p>
+              </div>
+            ) : (
+              <div className="table-shell">
+                <table className="data-table invoice-select-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAllPolicies}
+                          aria-label="Select all eligible policies"
+                        />
+                      </th>
+                      <th>Policy No.</th>
+                      <th>Traveller</th>
+                      <th>Partner</th>
+                      <th>Travel</th>
+                      <th>Premium</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligiblePolicies.map((policy) => {
+                      const isSelected = selectedPolicyIds.includes(policy.id);
+
+                      return (
+                        <tr
+                          key={policy.id}
+                          className={isSelected ? "is-selected" : ""}
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => togglePolicy(policy.id)}
+                              aria-label={`Select policy ${policy.policyNumber}`}
+                            />
+                          </td>
+                          <td>{policy.policyNumber}</td>
+                          <td>{policy.primaryTravellerName}</td>
+                          <td>{policy.partner.name}</td>
+                          <td>
+                            {formatTravelWindow(
+                              policy.startDate,
+                              policy.endDate,
+                            )}
+                          </td>
+                          <td>
+                            ₹{" "}
+                            {Number(policy.premiumAmount ?? 0).toLocaleString(
+                              "en-IN",
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="content-card invoice-dispatch-card">
         <div className="section-heading">

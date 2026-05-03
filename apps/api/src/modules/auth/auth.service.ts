@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { PrismaService } from "../../common/database/prisma.service";
 import type { LoginDto } from "./dto/login.dto";
 
@@ -20,11 +20,12 @@ type AuthTokenPayload = {
   sub: string;
   email: string;
   role: string;
+  partnerId: string | null;
 };
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private getJwtSecret() {
     return process.env.JWT_SECRET || "change-me";
@@ -55,6 +56,7 @@ export class AuthService {
         passwordHash,
         name: "Default Admin",
         role: "SUPER_ADMIN",
+        partnerId: null,
       },
     });
   }
@@ -84,6 +86,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      partnerId: user.partnerId,
     };
 
     const accessToken = jwt.sign(payload, this.getJwtSecret(), {
@@ -97,6 +100,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        partnerId: user.partnerId,
       },
     };
   }
@@ -115,6 +119,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      partnerId: user.partnerId,
       status: user.status,
     };
   }
@@ -137,6 +142,62 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      partnerId: user.partnerId,
     };
+  }
+
+  async createUser(input: {
+    email: string;
+    password: string;
+    name: string;
+    role: "SUPER_ADMIN" | "PARTNER";
+    partnerId?: string | null;
+  }) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (existing) {
+      throw new ConflictException("A user with this email already exists");
+    }
+
+    const passwordHash = await bcrypt.hash(input.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        name: input.name,
+        role: input.role,
+        partnerId: input.partnerId ?? null,
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      partnerId: user.partnerId,
+      status: user.status,
+    };
+  }
+
+  async listUsers() {
+    const users = await this.prisma.user.findMany({
+      include: { partner: { select: { id: true, name: true, partnerCode: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      partnerId: u.partnerId,
+      partnerName: u.partner?.name ?? null,
+      status: u.status,
+      createdAt: u.createdAt,
+    }));
   }
 }

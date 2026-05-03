@@ -34,11 +34,14 @@ function escapeCsv(value: unknown) {
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) { }
 
-  async getDashboard() {
+  async getDashboard(scopePartnerId?: string | null) {
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const policyScope = scopePartnerId ? { partnerId: scopePartnerId } : {};
+    const invoiceScope = scopePartnerId ? { partnerId: scopePartnerId } : {};
 
     const [
       totalPolicies,
@@ -53,18 +56,19 @@ export class ReportsService {
       recentActions,
       topPartner,
     ] = await Promise.all([
-      this.prisma.policy.count(),
+      this.prisma.policy.count({ where: policyScope }),
       this.prisma.policy.count({
-        where: { issueDate: { gte: todayStart, lte: todayEnd } },
+        where: { ...policyScope, issueDate: { gte: todayStart, lte: todayEnd } },
       }),
       this.prisma.policy.count({
-        where: { issueDate: { gte: monthStart } },
+        where: { ...policyScope, issueDate: { gte: monthStart } },
       }),
-      this.prisma.invoice.count(),
-      this.prisma.invoice.count({ where: { status: "READY" } }),
-      this.prisma.invoice.count({ where: { status: "SENT" } }),
+      this.prisma.invoice.count({ where: invoiceScope }),
+      this.prisma.invoice.count({ where: { ...invoiceScope, status: "READY" } }),
+      this.prisma.invoice.count({ where: { ...invoiceScope, status: "SENT" } }),
       this.prisma.policy.count({
         where: {
+          ...policyScope,
           documents: {
             none: { sourceType: "GENERATED_PDF" },
           },
@@ -74,11 +78,13 @@ export class ReportsService {
         where: { createdAt: { gte: todayStart, lte: todayEnd } },
       }),
       this.prisma.policy.findMany({
+        where: policyScope,
         take: 5,
         orderBy: { updatedAt: "desc" },
         include: { partner: true, travellers: true },
       }),
       this.prisma.policyAction.findMany({
+        where: scopePartnerId ? { policy: { partnerId: scopePartnerId } } : undefined,
         take: 8,
         orderBy: { doneAt: "desc" },
         include: {
@@ -92,6 +98,7 @@ export class ReportsService {
       }),
       this.prisma.policy.groupBy({
         by: ["partnerId"],
+        ...(scopePartnerId ? { where: { partnerId: scopePartnerId } } : {}),
         _count: { _all: true },
         orderBy: { _count: { partnerId: "desc" } },
         take: 1,

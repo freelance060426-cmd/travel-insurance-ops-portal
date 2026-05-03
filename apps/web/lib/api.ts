@@ -224,6 +224,7 @@ export type AuthUser = {
   email: string;
   name: string;
   role: string;
+  partnerId?: string | null;
   status?: string;
 };
 
@@ -521,6 +522,43 @@ export async function regeneratePolicyPdf(policyId: string, token?: string) {
   return fetchJson<{ fileUrl: string; fileName: string }>(
     `/api/policies/${policyId}/pdf/regenerate`,
     { method: "POST" },
+    token,
+  );
+}
+
+/* ─── User management ─── */
+
+export type ApiUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  partnerId: string | null;
+  partnerName: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export async function fetchUsers(token?: string) {
+  return fetchJson<ApiUser[]>("/api/auth/users", undefined, token);
+}
+
+export async function createUser(
+  payload: {
+    email: string;
+    password: string;
+    name: string;
+    role: "SUPER_ADMIN" | "PARTNER";
+    partnerId?: string | null;
+  },
+  token?: string,
+) {
+  return fetchJson<ApiUser>(
+    "/api/auth/users",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
     token,
   );
 }

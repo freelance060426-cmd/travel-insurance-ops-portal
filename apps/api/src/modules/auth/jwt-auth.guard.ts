@@ -14,12 +14,13 @@ type RequestWithUser = {
     sub: string;
     email: string;
     role: string;
+    partnerId: string | null;
   };
 };
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();

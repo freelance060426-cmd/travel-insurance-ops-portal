@@ -5,12 +5,13 @@ import { ROLES_KEY } from "./roles.decorator";
 type RequestWithUser = {
   user?: {
     role?: string;
+    partnerId?: string | null;
   };
 };
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles =

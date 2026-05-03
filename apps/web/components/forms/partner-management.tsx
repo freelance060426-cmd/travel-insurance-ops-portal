@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ApiPartner } from "@/lib/api";
-import { createPartner } from "@/lib/api";
+import { createPartner, createUser } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
 const BANK_ACCOUNT_TYPES = ["Savings", "Current", "OD", "CC", "NRE", "NRO"];
@@ -359,6 +359,139 @@ export function PartnerManagement({
           </table>
         </div>
       </section>
+
+      <PartnerLoginSection partners={initialPartners} />
     </div>
+  );
+}
+
+/* ─── Partner Login Creation Section ─── */
+
+function PartnerLoginSection({ partners }: { partners: ApiPartner[] }) {
+  const { token } = useAuth();
+  const [loginDraft, setLoginDraft] = useState({
+    partnerId: "",
+    email: "",
+    password: "",
+    name: "",
+  });
+  const [loginPending, setLoginPending] = useState(false);
+
+  async function handleCreateLogin() {
+    if (
+      !loginDraft.partnerId ||
+      !loginDraft.email ||
+      !loginDraft.password ||
+      !loginDraft.name
+    ) {
+      toast.error("All fields are required to create a partner login.");
+      return;
+    }
+
+    setLoginPending(true);
+    const toastId = toast.loading("Creating partner login...");
+
+    try {
+      const created = await createUser(
+        {
+          email: loginDraft.email,
+          password: loginDraft.password,
+          name: loginDraft.name,
+          role: "PARTNER",
+          partnerId: loginDraft.partnerId,
+        },
+        token ?? undefined,
+      );
+      toast.success(`Login created for ${created.name} (${created.email}).`, {
+        id: toastId,
+      });
+      setLoginDraft({ partnerId: "", email: "", password: "", name: "" });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create login.",
+        { id: toastId },
+      );
+    } finally {
+      setLoginPending(false);
+    }
+  }
+
+  return (
+    <section className="content-card">
+      <div className="section-heading">
+        <div>
+          <p className="portal-eyebrow">PARTNER ONBOARDING</p>
+          <h3>Create partner login</h3>
+          <p className="page-subtitle">
+            Create a portal login for a partner. They will see only their own
+            policies and invoices.
+          </p>
+        </div>
+      </div>
+
+      <div className="form-grid form-grid--invoice">
+        <label>
+          <span>Partner *</span>
+          <select
+            value={loginDraft.partnerId}
+            onChange={(e) =>
+              setLoginDraft((d) => ({ ...d, partnerId: e.target.value }))
+            }
+          >
+            <option value="">Select partner</option>
+            {partners
+              .filter((p) => p.status === "ACTIVE")
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.partnerCode})
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          <span>Display Name *</span>
+          <input
+            value={loginDraft.name}
+            placeholder="e.g. Partner staff name"
+            onChange={(e) =>
+              setLoginDraft((d) => ({ ...d, name: e.target.value }))
+            }
+          />
+        </label>
+        <label>
+          <span>Email (login) *</span>
+          <input
+            type="email"
+            value={loginDraft.email}
+            placeholder="partner@example.com"
+            onChange={(e) =>
+              setLoginDraft((d) => ({ ...d, email: e.target.value }))
+            }
+          />
+        </label>
+        <label>
+          <span>Password *</span>
+          <input
+            type="password"
+            value={loginDraft.password}
+            placeholder="Initial password"
+            onChange={(e) =>
+              setLoginDraft((d) => ({ ...d, password: e.target.value }))
+            }
+          />
+        </label>
+      </div>
+
+      <div className="action-row">
+        <button
+          className="primary-button"
+          type="button"
+          onClick={handleCreateLogin}
+          disabled={loginPending}
+        >
+          {loginPending ? "Creating..." : "Create Partner Login"}
+        </button>
+      </div>
+    </section>
   );
 }

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -23,6 +24,8 @@ import type { CreatePolicyDto } from "./dto/create-policy.dto";
 import type { EndorsePolicyDto } from "./dto/endorse-policy.dto";
 import type { SendPolicyEmailDto } from "./dto/send-policy-email.dto";
 
+type ReqUser = { sub: string; email: string; role: string; partnerId: string | null };
+
 if (!existsSync(policyUploadsRoot)) {
   mkdirSync(policyUploadsRoot, { recursive: true });
 }
@@ -40,8 +43,15 @@ export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) { }
 
   @Get()
-  listPolicies(@Query() query: Record<string, string | undefined>) {
-    return this.policiesService.list(query);
+  listPolicies(
+    @Query() query: Record<string, string | undefined>,
+    @Req() request: { user?: ReqUser },
+  ) {
+    const user = request.user!;
+    const scoped = user.role === "PARTNER" && user.partnerId
+      ? { ...query, partnerId: user.partnerId }
+      : query;
+    return this.policiesService.list(scoped);
   }
 
   @Get("check-passport")
@@ -50,17 +60,37 @@ export class PoliciesController {
   }
 
   @Get(":id")
-  getPolicy(@Param("id") id: string) {
-    return this.policiesService.getById(id);
+  async getPolicy(@Param("id") id: string, @Req() request: { user?: ReqUser }) {
+    const policy = await this.policiesService.getById(id);
+    const user = request.user!;
+    if (user.role === "PARTNER" && user.partnerId && policy.partnerId !== user.partnerId) {
+      throw new ForbiddenException("Access denied");
+    }
+    return policy;
   }
 
   @Post()
-  createPolicy(@Body() body: CreatePolicyDto) {
-    return this.policiesService.create(body);
+  createPolicy(@Body() body: CreatePolicyDto, @Req() request: { user?: ReqUser }) {
+    const user = request.user!;
+    const payload = user.role === "PARTNER" && user.partnerId
+      ? { ...body, partnerId: user.partnerId }
+      : body;
+    return this.policiesService.create(payload);
   }
 
   @Patch(":id/endorse")
-  endorsePolicy(@Param("id") id: string, @Body() body: EndorsePolicyDto) {
+  async endorsePolicy(
+    @Param("id") id: string,
+    @Body() body: EndorsePolicyDto,
+    @Req() request: { user?: ReqUser },
+  ) {
+    const user = request.user!;
+    if (user.role === "PARTNER" && user.partnerId) {
+      const policy = await this.policiesService.getById(id);
+      if (policy.partnerId !== user.partnerId) {
+        throw new ForbiddenException("Access denied");
+      }
+    }
     return this.policiesService.endorse(id, body);
   }
 

@@ -7,17 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  SUPER_ADMIN
+  PARTNER
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
   name         String
-  role         String
+  role         UserRole @default(PARTNER)
+  partnerId    String?
   status       String   @default("ACTIVE")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  partner      Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   createdPolicies Policy[] @relation("PolicyCreatedBy")
   updatedPolicies Policy[] @relation("PolicyUpdatedBy")
+
+  @@index([partnerId])
 }
 
 model Partner {
@@ -43,6 +52,7 @@ model Partner {
   updatedAt             DateTime  @updatedAt
   policies              Policy[]
   invoices              Invoice[]
+  users                 User[]
 }
 
 model Policy {

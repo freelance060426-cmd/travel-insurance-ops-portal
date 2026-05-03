@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PolicyExportButton } from "@/components/forms/policy-export-button";
 import { fetchPartners, fetchPolicies } from "@/lib/api";
 import type { ApiPartner } from "@/lib/api";
-import { getServerAuthToken } from "@/lib/server-auth";
+import { getServerAuthToken, decodeTokenPayload } from "@/lib/server-auth";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
@@ -26,6 +26,9 @@ export default async function PoliciesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const token = await getServerAuthToken();
+  const decoded = decodeTokenPayload(token);
+  const userRole = decoded?.role ?? "SUPER_ADMIN";
+  const isAdmin = userRole === "SUPER_ADMIN";
   const params = await searchParams;
   const selected = {
     search: typeof params.search === "string" ? params.search : "",
@@ -48,27 +51,39 @@ export default async function PoliciesPage({
   let error = "";
 
   try {
-    const [policies, partnerRows] = await Promise.all([
+    const results = await Promise.allSettled([
       fetchPolicies(token ?? undefined, selected),
-      fetchPartners(token ?? undefined),
+      isAdmin ? fetchPartners(token ?? undefined) : Promise.resolve([]),
     ]);
-    partners = partnerRows;
-    rows = policies.map((policy) => ({
-      id: policy.id,
-      policyNumber: policy.policyNumber,
-      traveller: policy.primaryTravellerName,
-      passport: policy.travellers[0]?.passportNumber ?? "N/A",
-      partner: policy.partner.name,
-      issueDate: formatDate(policy.issueDate),
-      travelWindow: formatTravelWindow(policy.startDate, policy.endDate),
-      startDate: formatDate(policy.startDate),
-      endDate: formatDate(policy.endDate),
-      status: policy.status,
-      premium:
-        policy.premiumAmount !== null && policy.premiumAmount !== undefined
-          ? `₹ ${Number(policy.premiumAmount).toLocaleString("en-IN")}`
-          : "₹ 0",
-    }));
+
+    const policiesResult = results[0];
+    const partnersResult = results[1];
+
+    if (policiesResult.status === "fulfilled") {
+      rows = policiesResult.value.map((policy) => ({
+        id: policy.id,
+        policyNumber: policy.policyNumber,
+        traveller: policy.primaryTravellerName,
+        passport: policy.travellers[0]?.passportNumber ?? "N/A",
+        partner: policy.partner.name,
+        issueDate: formatDate(policy.issueDate),
+        travelWindow: formatTravelWindow(policy.startDate, policy.endDate),
+        startDate: formatDate(policy.startDate),
+        endDate: formatDate(policy.endDate),
+        status: policy.status,
+        premium:
+          policy.premiumAmount !== null && policy.premiumAmount !== undefined
+            ? `₹ ${Number(policy.premiumAmount).toLocaleString("en-IN")}`
+            : "₹ 0",
+      }));
+    } else {
+      error =
+        policiesResult.reason?.message ?? "Policy search could not be loaded.";
+    }
+
+    if (partnersResult.status === "fulfilled") {
+      partners = partnersResult.value;
+    }
   } catch (caught) {
     error =
       caught instanceof Error
@@ -104,17 +119,19 @@ export default async function PoliciesPage({
                 defaultValue={selected.search}
               />
             </label>
-            <label className="filter-field">
-              <span>Partner</span>
-              <select name="partnerId" defaultValue={selected.partnerId}>
-                <option value="">All partners</option>
-                {partners.map((partner) => (
-                  <option key={partner.id} value={partner.id}>
-                    {partner.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {isAdmin && (
+              <label className="filter-field">
+                <span>Partner</span>
+                <select name="partnerId" defaultValue={selected.partnerId}>
+                  <option value="">All partners</option>
+                  {partners.map((partner) => (
+                    <option key={partner.id} value={partner.id}>
+                      {partner.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="filter-field">
               <span>Issue Date</span>
               <input
