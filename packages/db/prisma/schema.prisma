@@ -72,7 +72,7 @@ model Policy {
   travellers          PolicyTraveller[]
   documents           PolicyDocument[]
   actions             PolicyAction[]
-  invoices            Invoice[]
+  invoiceLinks        InvoicePolicy[]
   emailLogs           EmailLog[]
 
   @@index([partnerId])
@@ -147,24 +147,35 @@ model PolicyAction {
 }
 
 model Invoice {
-  id            String   @id @default(uuid())
-  invoiceNumber String   @unique
-  policyId      String?
+  id            String          @id @default(uuid())
+  invoiceNumber String          @unique
   partnerId     String
   invoiceDate   DateTime
-  amount        Decimal  @db.Decimal(10, 2)
-  status        String   @default("DRAFT")
+  amount        Decimal         @db.Decimal(10, 2)
+  status        String          @default("DRAFT")
   pdfUrl        String?
   createdBy     String?
   note          String?
-  createdAt     DateTime @default(now())
-  partner       Partner  @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  policy        Policy?  @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  createdAt     DateTime        @default(now())
+  partner       Partner         @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  policies      InvoicePolicy[]
   emailLogs     EmailLog[]
 
-  @@index([policyId])
   @@index([partnerId])
   @@index([invoiceDate])
+}
+
+model InvoicePolicy {
+  id            String   @id @default(uuid())
+  invoiceId     String
+  policyId      String
+  premiumAmount Decimal? @db.Decimal(10, 2)
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  policy        Policy   @relation(fields: [policyId], references: [id], onDelete: Restrict)
+
+  @@unique([invoiceId, policyId])
+  @@index([invoiceId])
+  @@index([policyId])
 }
 
 model EmailLog {

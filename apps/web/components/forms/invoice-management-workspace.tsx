@@ -62,8 +62,9 @@ function InvoiceRowActions({
   }
 
   async function handleSend() {
-    if (!invoice.policy?.customerEmail) {
-      toast.error("No customer email found on the linked policy.");
+    const firstEmail = invoice.policies?.[0]?.policy?.customerEmail;
+    if (!firstEmail) {
+      toast.error("No customer email found on the linked policies.");
       return;
     }
 
@@ -74,7 +75,7 @@ function InvoiceRowActions({
       await sendInvoiceEmail(
         invoice.id,
         {
-          recipientEmail: invoice.policy.customerEmail,
+          recipientEmail: firstEmail,
           subject: `Invoice ${invoice.invoiceNumber}`,
           message: `Please find attached invoice ${invoice.invoiceNumber}.`,
         },
@@ -221,7 +222,7 @@ export function InvoiceManagementWorkspace({
       toast.success(
         mode === "single"
           ? `Invoice ${created[0]?.invoiceNumber ?? ""} generated.`
-          : `${created.length} invoices generated.`,
+          : `Combined invoice ${created[0]?.invoiceNumber ?? ""} generated for ${selectedPolicyIds.length} policies.`,
         { id: toastId },
       );
     } catch (error) {
@@ -251,7 +252,11 @@ export function InvoiceManagementWorkspace({
     () =>
       invoices.map((invoice) => ({
         ...invoice,
-        policyNumber: invoice.policy?.policyNumber || "—",
+        policyNumber:
+          invoice.policies
+            ?.map((lnk) => lnk.policy?.policyNumber)
+            .filter(Boolean)
+            .join(", ") || "—",
         partnerName: invoice.partner.name,
         invoiceDateLabel: formatDate(invoice.invoiceDate),
         amountLabel: `₹ ${Number(invoice.amount).toLocaleString("en-IN")}`,
@@ -288,9 +293,7 @@ export function InvoiceManagementWorkspace({
             <p className="portal-eyebrow">GENERATION SETUP</p>
             <h3>Confirm rules before creating invoices</h3>
             <p className="section-note">
-              Bulk generation is intentionally strict: every selected eligible
-              policy creates its own invoice record. No combined invoice is
-              created in this phase.
+              Select eligible policies below to generate a combined invoice.
             </p>
           </div>
           <Link className="ghost-button" href="/invoices/new">
@@ -334,10 +337,6 @@ export function InvoiceManagementWorkspace({
                   ₹ {selectedPremiumTotal.toLocaleString("en-IN")}
                 </strong>
               </div>
-              <div>
-                <span>Bulk rule</span>
-                <strong>One invoice per policy</strong>
-              </div>
             </div>
           </div>
 
@@ -358,10 +357,10 @@ export function InvoiceManagementWorkspace({
                   selectedPolicyIds.length >= 2 ? "is-ready" : ""
                 }`}
               >
-                <span>Bulk</span>
+                <span>Combined</span>
                 <strong>2 or more policies</strong>
                 <small>
-                  Creates separate invoices for each selected policy.
+                  Creates one invoice covering all selected policies.
                 </small>
               </div>
             </div>
@@ -412,7 +411,7 @@ export function InvoiceManagementWorkspace({
             disabled={!canGenerateBulk}
             onClick={() => handleGenerate("bulk")}
           >
-            Generate Bulk Invoices
+            Generate Combined Invoice
           </button>
         </div>
 

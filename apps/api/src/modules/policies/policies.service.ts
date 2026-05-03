@@ -183,7 +183,7 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
         travellers: true,
         documents: true,
         actions: true,
-        invoices: true,
+        invoiceLinks: true,
         emailLogs: {
           orderBy: { createdAt: "desc" },
           take: 10,
@@ -441,7 +441,7 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
         travellers: true,
         documents: true,
         actions: true,
-        invoices: true,
+        invoiceLinks: true,
       },
     });
   }

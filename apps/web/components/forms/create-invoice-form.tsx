@@ -19,21 +19,33 @@ export function CreateInvoiceForm({
   const [invoiceNumber, setInvoiceNumber] = useState(
     `INV-${String(Date.now()).slice(-8)}`,
   );
-  const [policyId, setPolicyId] = useState(initialPolicies[0]?.id ?? "");
+  const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>(
+    initialPolicies[0] ? [initialPolicies[0].id] : [],
+  );
   const [partnerId, setPartnerId] = useState(
     initialPolicies[0]?.partner.id ?? initialPartners[0]?.id ?? "",
   );
-  const [invoiceDate, setInvoiceDate] = useState("2026-04-17");
-  const [amount, setAmount] = useState("20766");
+  const [invoiceDate, setInvoiceDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
   const [status, setStatus] = useState("READY");
   const [note, setNote] = useState(
-    "Invoice generated from an eligible policy and ready for PDF/download flow.",
+    "Invoice generated from eligible policy records.",
   );
   const [pending, setPending] = useState(false);
 
-  const selectedPolicy = useMemo(
-    () => initialPolicies.find((policy) => policy.id === policyId),
-    [initialPolicies, policyId],
+  const selectedPolicies = useMemo(
+    () => initialPolicies.filter((p) => selectedPolicyIds.includes(p.id)),
+    [initialPolicies, selectedPolicyIds],
+  );
+
+  const totalAmount = useMemo(
+    () =>
+      selectedPolicies.reduce(
+        (sum, p) => sum + Number(p.premiumAmount ?? 0),
+        0,
+      ),
+    [selectedPolicies],
   );
 
   const selectedPartner = useMemo(
@@ -41,9 +53,15 @@ export function CreateInvoiceForm({
     [initialPartners, partnerId],
   );
 
+  function togglePolicy(id: string) {
+    setSelectedPolicyIds((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+  }
+
   async function handleCreateInvoice() {
-    if (!policyId) {
-      toast.error("Select an eligible policy before generating an invoice.");
+    if (selectedPolicyIds.length === 0) {
+      toast.error("Select at least one eligible policy.");
       return;
     }
 
@@ -54,10 +72,10 @@ export function CreateInvoiceForm({
       const created = await createInvoice(
         {
           invoiceNumber,
-          policyId: policyId || undefined,
+          policyIds: selectedPolicyIds,
           partnerId,
           invoiceDate,
-          amount: Number(amount),
+          amount: totalAmount,
           status,
           note,
         },
@@ -82,10 +100,9 @@ export function CreateInvoiceForm({
     <div className="page-stack">
       <section className="content-card">
         <p className="portal-eyebrow">CREATE INVOICE</p>
-        <h1 className="page-title">Generate invoice from eligible policy</h1>
+        <h1 className="page-title">Generate invoice from eligible policies</h1>
         <p className="page-subtitle">
-          This screen is the separate single-invoice generation path. It only
-          works from policies that do not already have an invoice.
+          Select one or more eligible policies to include in this invoice.
         </p>
       </section>
 
@@ -107,30 +124,60 @@ export function CreateInvoiceForm({
               />
             </label>
             <label>
-              <span>Linked Policy</span>
-              <select
-                value={policyId}
-                onChange={(event) => {
-                  const nextPolicyId = event.target.value;
-                  setPolicyId(nextPolicyId);
-                  const nextPolicy = initialPolicies.find(
-                    (policy) => policy.id === nextPolicyId,
-                  );
-                  if (nextPolicy) {
-                    setPartnerId(nextPolicy.partner.id);
-                    setAmount(String(Number(nextPolicy.premiumAmount ?? 0)));
-                  }
-                }}
+              <span>Linked Policies ({selectedPolicyIds.length} selected)</span>
+              <div
+                className="table-shell"
+                style={{ maxHeight: 200, overflowY: "auto" }}
               >
-                {initialPolicies.length === 0 ? (
-                  <option value="">No eligible policies available</option>
-                ) : null}
-                {initialPolicies.map((policy) => (
-                  <option key={policy.id} value={policy.id}>
-                    {policy.policyNumber} - {policy.primaryTravellerName}
-                  </option>
-                ))}
-              </select>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 32 }}></th>
+                      <th>Policy No.</th>
+                      <th>Traveller</th>
+                      <th>Premium</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {initialPolicies.length === 0 ? (
+                      <tr>
+                        <td colSpan={4}>No eligible policies available</td>
+                      </tr>
+                    ) : null}
+                    {initialPolicies.map((policy) => (
+                      <tr
+                        key={policy.id}
+                        className={
+                          selectedPolicyIds.includes(policy.id)
+                            ? "is-selected"
+                            : ""
+                        }
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedPolicyIds.includes(policy.id)}
+                            onChange={() => {
+                              togglePolicy(policy.id);
+                              if (!partnerId && policy.partner?.id) {
+                                setPartnerId(policy.partner.id);
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>{policy.policyNumber}</td>
+                        <td>{policy.primaryTravellerName}</td>
+                        <td>
+                          ₹{" "}
+                          {Number(policy.premiumAmount ?? 0).toLocaleString(
+                            "en-IN",
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </label>
             <label>
               <span>Partner</span>
@@ -156,8 +203,9 @@ export function CreateInvoiceForm({
             <label>
               <span>Amount</span>
               <input
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                value={`₹ ${totalAmount.toLocaleString("en-IN")}`}
+                readOnly
+                className="input-readonly"
               />
             </label>
             <label>
@@ -188,8 +236,8 @@ export function CreateInvoiceForm({
           <h3>Expected output</h3>
           <div className="summary-pairs">
             <div>
-              <span>Eligible policy</span>
-              <strong>{selectedPolicy?.policyNumber ?? "Not selected"}</strong>
+              <span>Linked policies</span>
+              <strong>{selectedPolicyIds.length} selected</strong>
             </div>
             <div>
               <span>Partner</span>
@@ -197,7 +245,7 @@ export function CreateInvoiceForm({
             </div>
             <div>
               <span>Amount</span>
-              <strong>₹ {Number(amount || 0).toLocaleString("en-IN")}</strong>
+              <strong>₹ {totalAmount.toLocaleString("en-IN")}</strong>
             </div>
             <div>
               <span>PDF action</span>

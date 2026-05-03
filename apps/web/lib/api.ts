@@ -131,13 +131,23 @@ export type ApiPolicy = {
   documents?: ApiPolicyDocument[];
   actions?: ApiPolicyAction[];
   emailLogs?: ApiEmailLog[];
-  invoices?: unknown[];
+  invoiceLinks?: ApiInvoicePolicyLink[];
+};
+
+export type ApiInvoicePolicyLink = {
+  id: string;
+  invoiceId: string;
+  policyId: string;
+  premiumAmount?: string | number | null;
+  policy: Pick<
+    ApiPolicy,
+    "id" | "policyNumber" | "primaryTravellerName" | "customerEmail"
+  >;
 };
 
 export type ApiInvoice = {
   id: string;
   invoiceNumber: string;
-  policyId?: string | null;
   partnerId: string;
   invoiceDate: string;
   amount: string | number;
@@ -146,10 +156,7 @@ export type ApiInvoice = {
   note?: string | null;
   emailLogs?: ApiEmailLog[];
   partner: ApiPartner;
-  policy?: Pick<
-    ApiPolicy,
-    "id" | "policyNumber" | "primaryTravellerName" | "customerEmail"
-  > | null;
+  policies: ApiInvoicePolicyLink[];
 };
 
 export type ApiDashboardReport = {

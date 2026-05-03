@@ -32,7 +32,7 @@ function escapeCsv(value: unknown) {
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getDashboard() {
     const now = new Date();
@@ -100,8 +100,8 @@ export class ReportsService {
 
     const topPartnerRecord = topPartner[0]
       ? await this.prisma.partner.findUnique({
-          where: { id: topPartner[0].partnerId },
-        })
+        where: { id: topPartner[0].partnerId },
+      })
       : null;
 
     return {
@@ -117,10 +117,10 @@ export class ReportsService {
       },
       topPartner: topPartnerRecord
         ? {
-            id: topPartnerRecord.id,
-            name: topPartnerRecord.name,
-            policyCount: topPartner[0]?._count._all ?? 0,
-          }
+          id: topPartnerRecord.id,
+          name: topPartnerRecord.name,
+          policyCount: topPartner[0]?._count._all ?? 0,
+        }
         : null,
       recentPolicies,
       recentActions,
@@ -137,39 +137,39 @@ export class ReportsService {
       ...(query.partnerId ? { partnerId: query.partnerId } : {}),
       ...(issueFrom || issueTo
         ? {
-            issueDate: {
-              ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
-              ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
-            },
-          }
+          issueDate: {
+            ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
+            ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
+          },
+        }
         : {}),
       ...(search
         ? {
-            OR: [
-              { policyNumber: { contains: search, mode: "insensitive" } },
-              {
-                primaryTravellerName: {
-                  contains: search,
-                  mode: "insensitive",
-                },
+          OR: [
+            { policyNumber: { contains: search, mode: "insensitive" } },
+            {
+              primaryTravellerName: {
+                contains: search,
+                mode: "insensitive",
               },
-              {
-                partner: {
-                  name: { contains: search, mode: "insensitive" },
-                },
+            },
+            {
+              partner: {
+                name: { contains: search, mode: "insensitive" },
               },
-              {
-                travellers: {
-                  some: {
-                    passportNumber: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
+            },
+            {
+              travellers: {
+                some: {
+                  passportNumber: {
+                    contains: search,
+                    mode: "insensitive",
                   },
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : {}),
     };
   }
@@ -181,7 +181,7 @@ export class ReportsService {
       include: {
         partner: true,
         travellers: true,
-        invoices: true,
+        invoiceLinks: true,
         documents: true,
       },
       orderBy: { issueDate: "desc" },
@@ -204,14 +204,14 @@ export class ReportsService {
           where:
             issueFrom || issueTo
               ? {
-                  issueDate: {
-                    ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
-                    ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
-                  },
-                }
+                issueDate: {
+                  ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
+                  ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
+                },
+              }
               : undefined,
           include: {
-            invoices: true,
+            invoiceLinks: true,
           },
         },
       },
@@ -224,7 +224,7 @@ export class ReportsService {
         0,
       );
       const invoiceCount = partner.policies.reduce(
-        (sum, policy) => sum + policy.invoices.length,
+        (sum, policy) => sum + policy.invoiceLinks.length,
         0,
       );
 
@@ -267,7 +267,7 @@ export class ReportsService {
         policy.endDate.toISOString().slice(0, 10),
         policy.status,
         policy.premiumAmount?.toString() ?? "0",
-        policy.invoices.length,
+        policy.invoiceLinks.length,
         policy.documents.length,
       ]
         .map(escapeCsv)

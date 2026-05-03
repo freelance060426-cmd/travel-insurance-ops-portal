@@ -1,6 +1,6 @@
 export type CreateInvoiceDto = {
   invoiceNumber: string;
-  policyId?: string;
+  policyIds?: string[];
   partnerId: string;
   invoiceDate: string;
   amount: number;

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { InvoiceEmailActions } from "@/components/forms/invoice-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
-import { fetchInvoiceById } from "@/lib/api";
+import { buildApiAssetUrl, fetchInvoiceById } from "@/lib/api";
 import { getServerAuthToken } from "@/lib/server-auth";
 
 function formatDate(value: string) {
@@ -19,18 +19,24 @@ export default async function InvoiceDetailPage({
 
   try {
     const apiInvoice = await fetchInvoiceById(id, token ?? undefined);
+    const policyNumbers =
+      apiInvoice.policies
+        ?.map((lnk) => lnk.policy?.policyNumber)
+        .filter(Boolean)
+        .join(", ") || "—";
+    const firstEmail = apiInvoice.policies?.[0]?.policy?.customerEmail || "";
+
     invoice = {
       id: apiInvoice.id,
       invoiceNumber: apiInvoice.invoiceNumber,
-      policyNumber: apiInvoice.policy?.policyNumber || "—",
+      policyNumbers,
       partner: apiInvoice.partner.name,
       invoiceDate: formatDate(apiInvoice.invoiceDate),
       amount: `₹ ${Number(apiInvoice.amount).toLocaleString("en-IN")}`,
       status:
-        apiInvoice.status.charAt(0) +
-        apiInvoice.status.slice(1).toLowerCase(),
-      note: apiInvoice.note || "No internal note recorded.",
-      customerEmail: apiInvoice.policy?.customerEmail || "",
+        apiInvoice.status.charAt(0) + apiInvoice.status.slice(1).toLowerCase(),
+      pdfUrl: apiInvoice.pdfUrl ? buildApiAssetUrl(apiInvoice.pdfUrl) : null,
+      customerEmail: firstEmail,
       emailLogs: apiInvoice.emailLogs || [],
     };
   } catch {
@@ -45,11 +51,11 @@ export default async function InvoiceDetailPage({
     <div className="page-stack">
       <section className="hero-panel hero-panel--brand">
         <div>
-          <p className="portal-eyebrow">INVOICE DETAIL</p>
+          <p className="portal-eyebrow">INVOICE</p>
           <h1>{invoice.invoiceNumber}</h1>
           <p className="hero-panel__text">
-            {invoice.partner} · Linked policy {invoice.policyNumber} ·{" "}
-            {invoice.invoiceDate}
+            {invoice.partner} · {invoice.policyNumbers} · {invoice.invoiceDate}{" "}
+            · {invoice.amount}
           </p>
         </div>
 
@@ -62,59 +68,52 @@ export default async function InvoiceDetailPage({
         </div>
       </section>
 
-      <div className="two-column-grid">
-        <section className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">SUMMARY</p>
-              <h3>Invoice information</h3>
-            </div>
+      <section className="content-card">
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">INVOICE PDF</p>
+            <h3>View, generate, or regenerate the invoice document</h3>
           </div>
+        </div>
 
-          <div className="summary-pairs">
-            <div>
-              <span>Policy Number</span>
-              <strong>{invoice.policyNumber}</strong>
-            </div>
-            <div>
-              <span>Partner</span>
-              <strong>{invoice.partner}</strong>
-            </div>
-            <div>
-              <span>Invoice Date</span>
-              <strong>{invoice.invoiceDate}</strong>
-            </div>
-            <div>
-              <span>Amount</span>
-              <strong>{invoice.amount}</strong>
-            </div>
-          </div>
-        </section>
+        <PdfActions
+          entityType="invoice"
+          entityId={invoice.id}
+          initialUrl={invoice.pdfUrl}
+        />
 
-        <section className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">ACTIONS</p>
-              <h3>PDF and client share</h3>
-            </div>
-          </div>
-
-          <PdfActions entityType="invoice" entityId={invoice.id} />
-          <div style={{ marginTop: 14 }}>
-            <InvoiceEmailActions
-              invoiceId={invoice.id}
-              invoiceNumber={invoice.invoiceNumber}
-              initialRecipient={invoice.customerEmail}
-              initialLogs={invoice.emailLogs}
+        {invoice.pdfUrl ? (
+          <div
+            style={{
+              marginTop: 16,
+              border: "1px solid var(--line)",
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            <iframe
+              src={invoice.pdfUrl}
+              title={`Invoice ${invoice.invoiceNumber}`}
+              style={{ width: "100%", height: 600, border: "none" }}
             />
           </div>
-        </section>
-      </div>
+        ) : null}
+      </section>
 
       <section className="content-card">
-        <p className="portal-eyebrow">NOTES</p>
-        <h3>Internal note</h3>
-        <p className="page-subtitle">{invoice.note}</p>
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">EMAIL</p>
+            <h3>Send invoice to client</h3>
+          </div>
+        </div>
+
+        <InvoiceEmailActions
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.invoiceNumber}
+          initialRecipient={invoice.customerEmail}
+          initialLogs={invoice.emailLogs}
+        />
       </section>
     </div>
   );
