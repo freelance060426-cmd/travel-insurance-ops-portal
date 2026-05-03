@@ -58,7 +58,7 @@ export default async function DashboardPage() {
         {
           label: "Start new policy",
           value: "Create policy",
-          detail: "Manual-first issue flow with traveller and plan capture.",
+          detail: "Issue a travel policy with traveller and plan capture.",
           href: "/policies/new",
           tone: "primary",
         },
@@ -103,11 +103,15 @@ export default async function DashboardPage() {
             <div className="dashboard-hero-visual__glow" />
             <div className="dashboard-hero-visual__card">
               <span>Today&apos;s issue count</span>
-              <strong>{dashboard?.metrics.todayPolicies ?? 0} policies created</strong>
+              <strong>
+                {dashboard?.metrics.todayPolicies ?? 0} policies created
+              </strong>
             </div>
             <div className="dashboard-hero-visual__card dashboard-hero-visual__card--secondary">
               <span>Dispatch health</span>
-              <strong>{dashboard?.metrics.readyInvoices ?? 0} invoices ready to send</strong>
+              <strong>
+                {dashboard?.metrics.readyInvoices ?? 0} invoices ready to send
+              </strong>
             </div>
           </div>
         </div>
@@ -115,7 +119,10 @@ export default async function DashboardPage() {
 
       <section className="metric-grid">
         {metrics.map((metric) => (
-          <article key={metric.label} className={`metric-card tone-${metric.tone}`}>
+          <article
+            key={metric.label}
+            className={`metric-card tone-${metric.tone}`}
+          >
             <p>{metric.label}</p>
             <strong>{metric.value}</strong>
             <span>{metric.delta}</span>

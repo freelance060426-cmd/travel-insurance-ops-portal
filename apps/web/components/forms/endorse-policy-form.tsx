@@ -6,16 +6,54 @@ import { toast } from "sonner";
 import { endorsePolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
+/* ─── constants ─── */
+
+const TRAVEL_REGIONS = ["Asia", "Europe", "Americas", "Worldwide"];
+
+const NOMINEE_RELATIONSHIPS = [
+  "Father",
+  "Mother",
+  "Spouse",
+  "Brother",
+  "Sister",
+  "Son",
+  "Daughter",
+  "Uncle",
+  "Aunty",
+  "Cousin",
+  "Friend",
+  "Others",
+];
+
+/* ─── types ─── */
+
 type EndorseTravellerDraft = {
   id: string;
   name: string;
   passport: string;
-  ageOrDob: string;
+  gender: string;
+  dateOfBirth: string;
+  nominee: string;
+  nomineeRelationship: string;
+  address: string;
+  pincode: string;
+  city: string;
+  district: string;
+  state: string;
+  country: string;
+  email: string;
+  mobile: string;
   plan: string;
   premium: string;
+  remarks: string;
+  pastIllness: string;
+  crReferenceNumber: string;
+  emergencyContactPerson: string;
+  emergencyContactNumber: string;
+  emergencyEmail: string;
+  gstNumber: string;
+  gstState: string;
 };
-
-type PlanName = "Prime" | "Ace" | "Elite";
 
 type EndorsePolicyViewModel = {
   id: string;
@@ -24,15 +62,53 @@ type EndorsePolicyViewModel = {
   issueDate: string;
   startDate: string;
   endDate: string;
+  travelRegion: string;
+  destination: string;
   status: string;
   travellers: ReadonlyArray<{
     name: string;
     passport: string;
-    ageOrDob: string;
+    gender: string;
+    dateOfBirth: string;
+    nominee: string;
+    nomineeRelationship: string;
+    address: string;
+    pincode: string;
+    city: string;
+    district: string;
+    state: string;
+    country: string;
+    email: string;
+    mobile: string;
     plan: string;
     premium: string;
+    remarks: string;
+    pastIllness: string;
+    crReferenceNumber: string;
+    emergencyContactPerson: string;
+    emergencyContactNumber: string;
+    emergencyEmail: string;
+    gstNumber: string;
+    gstState: string;
   }>;
 };
+
+/* ─── helpers ─── */
+
+function computeDays(start: string, end: string) {
+  if (!start || !end) return 0;
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : 0;
+}
+
+function computeAge(dob: string) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  const diff = Date.now() - birth.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+}
+
+/* ─── component ─── */
 
 export function EndorsePolicyForm({
   policy,
@@ -41,39 +117,55 @@ export function EndorsePolicyForm({
 }) {
   const router = useRouter();
   const { token } = useAuth();
+
   const [startDate, setStartDate] = useState(policy.startDate);
   const [endDate, setEndDate] = useState(policy.endDate);
-  const initialPlan = (policy.travellers[0]?.plan ?? "Prime") as PlanName;
-  const [planOverride, setPlanOverride] = useState<PlanName>(initialPlan);
+  const [travelRegion, setTravelRegion] = useState(policy.travelRegion);
+  const [destination, setDestination] = useState(policy.destination);
   const [reason, setReason] = useState(
     "Traveller correction and travel date update",
   );
+
   const [travellers, setTravellers] = useState<EndorseTravellerDraft[]>(
-    policy.travellers.map((traveller, index) => ({
+    policy.travellers.map((t, index) => ({
       id: `${policy.id}-${index}`,
-      name: traveller.name,
-      passport: traveller.passport,
-      ageOrDob: traveller.ageOrDob,
-      plan: traveller.plan,
-      premium: traveller.premium,
+      name: t.name,
+      passport: t.passport,
+      gender: t.gender,
+      dateOfBirth: t.dateOfBirth,
+      nominee: t.nominee,
+      nomineeRelationship: t.nomineeRelationship,
+      address: t.address,
+      pincode: t.pincode,
+      city: t.city,
+      district: t.district,
+      state: t.state,
+      country: t.country,
+      email: t.email,
+      mobile: t.mobile,
+      plan: t.plan,
+      premium: t.premium,
+      remarks: t.remarks,
+      pastIllness: t.pastIllness,
+      crReferenceNumber: t.crReferenceNumber,
+      emergencyContactPerson: t.emergencyContactPerson,
+      emergencyContactNumber: t.emergencyContactNumber,
+      emergencyEmail: t.emergencyEmail,
+      gstNumber: t.gstNumber,
+      gstState: t.gstState,
     })),
   );
+
   const [pending, setPending] = useState(false);
+
+  const tripDays = computeDays(startDate, endDate);
 
   const changeSummary = useMemo(() => {
     return [
       `Travel window: ${policy.startDate} → ${startDate}, ${policy.endDate} → ${endDate}`,
-      `Primary plan adjustment target: ${planOverride}`,
       `Traveller rows ready for endorsement save: ${travellers.length}`,
     ];
-  }, [
-    endDate,
-    planOverride,
-    policy.endDate,
-    policy.startDate,
-    startDate,
-    travellers.length,
-  ]);
+  }, [endDate, policy.endDate, policy.startDate, startDate, travellers.length]);
 
   function updateTraveller(
     id: string,
@@ -81,9 +173,7 @@ export function EndorsePolicyForm({
     value: string,
   ) {
     setTravellers((current) =>
-      current.map((traveller) =>
-        traveller.id === id ? { ...traveller, [field]: value } : traveller,
-      ),
+      current.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
     );
   }
 
@@ -98,14 +188,34 @@ export function EndorsePolicyForm({
           startDate,
           endDate,
           reason,
-          preferredPlan: planOverride,
-          travellers: travellers.map((traveller) => ({
-            travellerName: traveller.name,
-            passportNumber: traveller.passport,
-            ageOrDob: traveller.ageOrDob,
-            planName: traveller.plan,
-            premiumAmount:
-              Number(traveller.premium.replace(/[^\d.]/g, "")) || 0,
+          travelRegion: travelRegion || undefined,
+          destination: destination || undefined,
+          travellers: travellers.map((t) => ({
+            travellerName: t.name,
+            passportNumber: t.passport,
+            gender: t.gender || undefined,
+            dateOfBirth: t.dateOfBirth || undefined,
+            age: computeAge(t.dateOfBirth) ?? undefined,
+            nominee: t.nominee || undefined,
+            nomineeRelationship: t.nomineeRelationship || undefined,
+            address: t.address || undefined,
+            pincode: t.pincode || undefined,
+            city: t.city || undefined,
+            district: t.district || undefined,
+            state: t.state || undefined,
+            country: t.country || undefined,
+            email: t.email || undefined,
+            mobile: t.mobile || undefined,
+            planName: t.plan || undefined,
+            premiumAmount: Number(t.premium.replace(/[^\d.]/g, "")) || 0,
+            remarks: t.remarks || undefined,
+            pastIllness: t.pastIllness || undefined,
+            crReferenceNumber: t.crReferenceNumber || undefined,
+            emergencyContactPerson: t.emergencyContactPerson || undefined,
+            emergencyContactNumber: t.emergencyContactNumber || undefined,
+            emergencyEmail: t.emergencyEmail || undefined,
+            gstNumber: t.gstNumber || undefined,
+            gstState: t.gstState || undefined,
           })),
         },
         token ?? undefined,
@@ -130,9 +240,8 @@ export function EndorsePolicyForm({
           <p className="portal-eyebrow">ENDORSE POLICY</p>
           <h1>{policy.policyNumber}</h1>
           <p className="hero-panel__text">
-            This screen represents the phase 1 endorsement flow: edit key
-            details, keep a change summary, and save endorsement changes without
-            mixing in full insurer-side lifecycle complexity yet.
+            Edit travel dates, plan, and traveller details. Changes are tracked
+            and saved as an endorsement record.
           </p>
         </div>
 
@@ -142,16 +251,39 @@ export function EndorsePolicyForm({
         </div>
       </section>
 
+      {/* ─── Trip / Header ─── */}
       <div className="form-layout">
         <section className="content-card">
           <div className="section-heading">
             <div>
-              <p className="portal-eyebrow">ENDORSEMENT HEADER</p>
+              <p className="portal-eyebrow">TRIP &amp; POLICY HEADER</p>
               <h3>Policy updates</h3>
             </div>
           </div>
 
           <div className="form-grid form-grid--policy-header">
+            <label>
+              <span>Travel Region</span>
+              <select
+                value={travelRegion}
+                onChange={(e) => setTravelRegion(e.target.value)}
+              >
+                <option value="">Select region</option>
+                {TRAVEL_REGIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Destination</span>
+              <input
+                value={destination}
+                placeholder="Country name(s)"
+                onChange={(e) => setDestination(e.target.value)}
+              />
+            </label>
             <label>
               <span>Issue Date</span>
               <input type="date" value={policy.issueDate} readOnly />
@@ -161,7 +293,7 @@ export function EndorsePolicyForm({
               <input
                 type="date"
                 value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
+                onChange={(e) => setStartDate(e.target.value)}
               />
             </label>
             <label>
@@ -169,27 +301,23 @@ export function EndorsePolicyForm({
               <input
                 type="date"
                 value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </label>
             <label>
-              <span>Preferred plan</span>
-              <select
-                value={planOverride}
-                onChange={(event) =>
-                  setPlanOverride(event.target.value as PlanName)
-                }
-              >
-                <option>Prime</option>
-                <option>Ace</option>
-                <option>Elite</option>
-              </select>
+              <span>Trip Days</span>
+              <input
+                type="text"
+                value={tripDays > 0 ? `${tripDays} days` : "—"}
+                readOnly
+                className="input-readonly"
+              />
             </label>
             <label>
               <span>Endorsement reason</span>
               <input
                 value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                onChange={(e) => setReason(e.target.value)}
               />
             </label>
           </div>
@@ -204,86 +332,333 @@ export function EndorsePolicyForm({
             ))}
           </ul>
           <div className="lookup-banner">
-            Phase 1 endorsement should preserve action history. This demo
-            assumes the backend will save a before/after change record when the
-            endorsement is submitted.
+            A before/after change record will be saved when the endorsement is
+            submitted.
           </div>
         </aside>
       </div>
 
-      {travellers.map((traveller, index) => (
-        <section key={traveller.id} className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">TRAVELLER {index + 1}</p>
-              <h3>{traveller.name}</h3>
+      {/* ─── Traveller cards ─── */}
+      {travellers.map((t, index) => {
+        const age = computeAge(t.dateOfBirth);
+        return (
+          <article key={t.id} className="traveller-entry-card">
+            <div className="traveller-entry-card__header">
+              <div className="traveller-title-row">
+                <span className="traveller-index-pill">{index + 1}</span>
+                <div>
+                  <p className="portal-eyebrow">TRAVELLER {index + 1}</p>
+                  <h4>{t.name || "Traveller"}</h4>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="traveller-card-grid">
-            <label>
-              <span>Traveller Name</span>
-              <input
-                value={traveller.name}
-                onChange={(event) =>
-                  updateTraveller(traveller.id, "name", event.target.value)
-                }
-              />
-            </label>
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Identity</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Passport Number *</span>
+                  <input
+                    value={t.passport}
+                    onChange={(e) =>
+                      updateTraveller(
+                        t.id,
+                        "passport",
+                        e.target.value.toUpperCase(),
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Name *</span>
+                  <input
+                    value={t.name}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "name", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Gender *</span>
+                  <select
+                    value={t.gender}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "gender", e.target.value)
+                    }
+                  >
+                    <option value="">Select</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Date of Birth *</span>
+                  <input
+                    type="date"
+                    value={t.dateOfBirth}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "dateOfBirth", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Age</span>
+                  <input
+                    type="text"
+                    value={age != null ? `${age} years` : "—"}
+                    readOnly
+                    className="input-readonly"
+                  />
+                </label>
+              </div>
+            </div>
 
-            <label>
-              <span>Passport Number</span>
-              <input
-                value={traveller.passport}
-                onChange={(event) =>
-                  updateTraveller(
-                    traveller.id,
-                    "passport",
-                    event.target.value.toUpperCase(),
-                  )
-                }
-              />
-            </label>
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Contact</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Email *</span>
+                  <input
+                    type="email"
+                    value={t.email}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "email", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Mobile *</span>
+                  <input
+                    value={t.mobile}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "mobile", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
 
-            <label>
-              <span>Date of birth / age</span>
-              <input
-                value={traveller.ageOrDob}
-                onChange={(event) =>
-                  updateTraveller(traveller.id, "ageOrDob", event.target.value)
-                }
-              />
-            </label>
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Address</h5>
+              <div className="traveller-card-grid">
+                <label className="span-full">
+                  <span>Address *</span>
+                  <input
+                    value={t.address}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "address", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Pincode *</span>
+                  <input
+                    value={t.pincode}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "pincode", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>City *</span>
+                  <input
+                    value={t.city}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "city", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>District *</span>
+                  <input
+                    value={t.district}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "district", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>State *</span>
+                  <input
+                    value={t.state}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "state", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Country *</span>
+                  <input
+                    value={t.country}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "country", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
 
-            <label>
-              <span>Plan</span>
-              <select
-                value={traveller.plan}
-                onChange={(event) =>
-                  updateTraveller(traveller.id, "plan", event.target.value)
-                }
-              >
-                <option>Prime</option>
-                <option>Ace</option>
-                <option>Elite</option>
-              </select>
-            </label>
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Nominee</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Nominee Name *</span>
+                  <input
+                    value={t.nominee}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "nominee", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Relationship *</span>
+                  <select
+                    value={t.nomineeRelationship}
+                    onChange={(e) =>
+                      updateTraveller(
+                        t.id,
+                        "nomineeRelationship",
+                        e.target.value,
+                      )
+                    }
+                  >
+                    <option value="">Select</option>
+                    {NOMINEE_RELATIONSHIPS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
 
-            <label>
-              <span>Premium</span>
-              <input
-                value={traveller.premium}
-                onChange={(event) =>
-                  updateTraveller(traveller.id, "premium", event.target.value)
-                }
-              />
-            </label>
-          </div>
-        </section>
-      ))}
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Emergency Contact</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Contact Person</span>
+                  <input
+                    value={t.emergencyContactPerson}
+                    onChange={(e) =>
+                      updateTraveller(
+                        t.id,
+                        "emergencyContactPerson",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Contact Number</span>
+                  <input
+                    value={t.emergencyContactNumber}
+                    onChange={(e) =>
+                      updateTraveller(
+                        t.id,
+                        "emergencyContactNumber",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Contact Email</span>
+                  <input
+                    type="email"
+                    value={t.emergencyEmail}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "emergencyEmail", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Other Details</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Past Illness</span>
+                  <input
+                    value={t.pastIllness}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "pastIllness", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Remarks</span>
+                  <input
+                    value={t.remarks}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "remarks", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>CR Reference Number</span>
+                  <input
+                    value={t.crReferenceNumber}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "crReferenceNumber", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>GST Number</span>
+                  <input
+                    value={t.gstNumber}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "gstNumber", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>GST State</span>
+                  <input
+                    value={t.gstState}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "gstState", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="wizard-field-group">
+              <h5 className="wizard-field-group__label">Plan &amp; Premium</h5>
+              <div className="traveller-card-grid">
+                <label>
+                  <span>Plan</span>
+                  <input
+                    value={t.plan}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "plan", e.target.value)
+                    }
+                  />
+                </label>
+                <label>
+                  <span>Premium</span>
+                  <input
+                    value={t.premium}
+                    onChange={(e) =>
+                      updateTraveller(t.id, "premium", e.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+          </article>
+        );
+      })}
 
       <div className="action-row">
-        <button className="ghost-button" type="button">
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => router.push(`/policies/${policy.id}`)}
+        >
           Back to detail
         </button>
         <button

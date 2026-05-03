@@ -44,11 +44,14 @@ export default async function PolicyDetailPage({
       startDate: formatDate(apiPolicy.startDate),
       endDate: formatDate(apiPolicy.endDate),
       status: apiPolicy.status,
+      travelRegion: apiPolicy.travelRegion ?? null,
+      destination: apiPolicy.destination ?? null,
+      tripDays: apiPolicy.tripDays ?? null,
       premium:
         apiPolicy.premiumAmount !== null &&
         apiPolicy.premiumAmount !== undefined
-          ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
-          : "₹ 0",
+          ? `Rs. ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
+          : "Rs. 0",
       documents:
         apiPolicy.documents?.map((document) => ({
           label: document.fileName || "Stored document",
@@ -60,16 +63,19 @@ export default async function PolicyDetailPage({
       travellers: apiPolicy.travellers.map((traveller) => ({
         name: traveller.travellerName,
         passport: traveller.passportNumber,
-        ageOrDob: traveller.ageOrDob ?? "N/A",
-        plan: traveller.planName || "Prime",
+        gender: traveller.gender ?? "",
+        dateOfBirth: traveller.dateOfBirth
+          ? new Date(traveller.dateOfBirth).toISOString().slice(0, 10)
+          : "",
+        email: traveller.email ?? "",
+        mobile: traveller.mobile ?? "",
+        nominee: traveller.nominee ?? "",
+        plan: traveller.planName || "—",
         premium:
           traveller.premiumAmount !== null &&
           traveller.premiumAmount !== undefined
-            ? `₹ ${Number(traveller.premiumAmount).toLocaleString("en-IN")}`
-            : apiPolicy.premiumAmount !== null &&
-                apiPolicy.premiumAmount !== undefined
-              ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
-              : "₹ 0",
+            ? `Rs. ${Number(traveller.premiumAmount).toLocaleString("en-IN")}`
+            : "—",
       })),
     };
   } catch {
@@ -132,27 +138,45 @@ export default async function PolicyDetailPage({
               <span>Total premium</span>
               <strong>{policy.premium}</strong>
             </div>
+            {policy.travelRegion && (
+              <div>
+                <span>Region</span>
+                <strong>{policy.travelRegion}</strong>
+              </div>
+            )}
+            {policy.destination && (
+              <div>
+                <span>Destination</span>
+                <strong>{policy.destination}</strong>
+              </div>
+            )}
+            {policy.tripDays !== null && (
+              <div>
+                <span>Trip days</span>
+                <strong>{policy.tripDays}</strong>
+              </div>
+            )}
           </div>
         </section>
 
-      <section className="content-card">
-        <div className="section-heading">
-          <div>
-            <p className="portal-eyebrow">PDF & EMAIL</p>
-            <h3>Manual customer actions</h3>
+        <section className="content-card">
+          <div className="section-heading">
+            <div>
+              <p className="portal-eyebrow">PDF & EMAIL</p>
+              <h3>Manual customer actions</h3>
+            </div>
           </div>
-        </div>
 
-        <PdfActions entityType="policy" entityId={policy.id} />
-        <div style={{ marginTop: 14 }}>
-          <PolicyEmailActions
-            policyId={policy.id}
-            policyNumber={policy.policyNumber}
-            initialRecipient={policy.customerEmail}
-            initialLogs={policy.emailLogs}
-          />
-        </div>
-      </section>
+          <PdfActions entityType="policy" entityId={policy.id} />
+          <div style={{ marginTop: 14 }}>
+            <PolicyEmailActions
+              policyId={policy.id}
+              policyNumber={policy.policyNumber}
+              initialRecipient={policy.customerEmail}
+              initialLogs={policy.emailLogs}
+            />
+          </div>
+        </section>
       </div>
 
       <section className="content-card">
@@ -169,7 +193,11 @@ export default async function PolicyDetailPage({
               <tr>
                 <th>Name</th>
                 <th>Passport</th>
-                <th>DOB / Age</th>
+                <th>Gender</th>
+                <th>DOB</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Nominee</th>
                 <th>Plan</th>
                 <th>Premium</th>
               </tr>
@@ -179,7 +207,11 @@ export default async function PolicyDetailPage({
                 <tr key={`${traveller.passport}-${traveller.name}`}>
                   <td>{traveller.name}</td>
                   <td>{traveller.passport}</td>
-                  <td>{traveller.ageOrDob}</td>
+                  <td>{traveller.gender || "—"}</td>
+                  <td>{traveller.dateOfBirth || "—"}</td>
+                  <td>{traveller.email || "—"}</td>
+                  <td>{traveller.mobile || "—"}</td>
+                  <td>{traveller.nominee || "—"}</td>
                   <td>{traveller.plan}</td>
                   <td>{traveller.premium}</td>
                 </tr>

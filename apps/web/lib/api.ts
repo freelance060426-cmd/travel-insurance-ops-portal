@@ -126,6 +126,9 @@ export type ApiPolicy = {
   customerEmail?: string | null;
   customerMobile?: string | null;
   premiumAmount?: string | number | null;
+  travelRegion?: string | null;
+  destination?: string | null;
+  tripDays?: number | null;
   partner: ApiPartner;
   travellers: ApiPolicyTraveller[];
   documents?: ApiPolicyDocument[];

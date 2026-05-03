@@ -53,7 +53,7 @@ export function LoginForm() {
           <div className="login-scene__chips">
             <span className="portal-chip">Travel-ready operations</span>
             <span className="portal-chip">PDF + email dispatch</span>
-            <span className="portal-chip">Manual-first, integration-ready</span>
+            <span className="portal-chip">Policy + invoice management</span>
           </div>
         </div>
       </section>

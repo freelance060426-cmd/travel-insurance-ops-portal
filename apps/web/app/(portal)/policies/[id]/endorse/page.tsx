@@ -25,20 +25,40 @@ export default async function EndorsePolicyPage({
       issueDate: formatDate(apiPolicy.issueDate),
       startDate: formatDate(apiPolicy.startDate),
       endDate: formatDate(apiPolicy.endDate),
+      travelRegion: apiPolicy.travelRegion ?? "",
+      destination: apiPolicy.destination ?? "",
       status: apiPolicy.status,
       travellers: apiPolicy.travellers.map((traveller) => ({
         name: traveller.travellerName,
         passport: traveller.passportNumber,
-        ageOrDob: traveller.ageOrDob ?? "N/A",
-        plan: traveller.planName || "Prime",
+        gender: traveller.gender ?? "",
+        dateOfBirth: traveller.dateOfBirth
+          ? new Date(traveller.dateOfBirth).toISOString().slice(0, 10)
+          : "",
+        nominee: traveller.nominee ?? "",
+        nomineeRelationship: traveller.nomineeRelationship ?? "",
+        address: traveller.address ?? "",
+        pincode: traveller.pincode ?? "",
+        city: traveller.city ?? "",
+        district: traveller.district ?? "",
+        state: traveller.state ?? "",
+        country: traveller.country ?? "",
+        email: traveller.email ?? "",
+        mobile: traveller.mobile ?? "",
+        plan: traveller.planName || "",
         premium:
           traveller.premiumAmount !== null &&
           traveller.premiumAmount !== undefined
-            ? `₹ ${Number(traveller.premiumAmount).toLocaleString("en-IN")}`
-            : apiPolicy.premiumAmount !== null &&
-                apiPolicy.premiumAmount !== undefined
-              ? `₹ ${Number(apiPolicy.premiumAmount).toLocaleString("en-IN")}`
-              : "₹ 0",
+            ? String(Number(traveller.premiumAmount))
+            : "0",
+        remarks: traveller.remarks ?? "",
+        pastIllness: traveller.pastIllness ?? "",
+        crReferenceNumber: traveller.crReferenceNumber ?? "",
+        emergencyContactPerson: traveller.emergencyContactPerson ?? "",
+        emergencyContactNumber: traveller.emergencyContactNumber ?? "",
+        emergencyEmail: traveller.emergencyEmail ?? "",
+        gstNumber: traveller.gstNumber ?? "",
+        gstState: traveller.gstState ?? "",
       })),
     };
   } catch {
