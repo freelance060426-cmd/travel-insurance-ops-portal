@@ -54,6 +54,9 @@ model Policy {
   endDate             DateTime
   insurerName         String
   productCode         String?
+  travelRegion        String?
+  destination         String?
+  tripDays            Int?
   status              String            @default("DRAFT")
   primaryTravellerName String
   customerEmail       String?
@@ -78,18 +81,37 @@ model Policy {
 }
 
 model PolicyTraveller {
-  id             String   @id @default(uuid())
-  policyId       String
-  travellerName  String
-  passportNumber String
-  ageOrDob       String?
-  email          String?
-  mobile         String?
-  planName       String?
-  premiumAmount  Decimal? @db.Decimal(10, 2)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  id                     String   @id @default(uuid())
+  policyId               String
+  travellerName          String
+  passportNumber         String
+  gender                 String?
+  dateOfBirth            DateTime?
+  age                    Int?
+  ageOrDob               String?
+  nominee                String?
+  nomineeRelationship    String?
+  address                String?
+  pincode                String?
+  city                   String?
+  district               String?
+  state                  String?
+  country                String?
+  email                  String?
+  mobile                 String?
+  remarks                String?
+  crReferenceNumber      String?
+  pastIllness            String?
+  emergencyContactPerson String?
+  emergencyContactNumber String?
+  emergencyEmail         String?
+  gstNumber              String?
+  gstState               String?
+  planName               String?
+  premiumAmount          Decimal? @db.Decimal(10, 2)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  policy                 Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
 
   @@index([policyId])
   @@index([passportNumber])
@@ -165,4 +187,17 @@ model EmailLog {
   @@index([invoiceId])
   @@index([status])
   @@index([createdAt])
+}
+
+model Plan {
+  id            String   @id @default(uuid())
+  name          String
+  insurer       String
+  region        String?
+  minDays       Int?
+  maxDays       Int?
+  premiumAmount Decimal  @db.Decimal(10, 2)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

@@ -37,11 +37,16 @@ const allowedDocumentMimeTypes = new Set([
 @Controller("policies")
 @UseGuards(JwtAuthGuard)
 export class PoliciesController {
-  constructor(private readonly policiesService: PoliciesService) {}
+  constructor(private readonly policiesService: PoliciesService) { }
 
   @Get()
   listPolicies(@Query() query: Record<string, string | undefined>) {
     return this.policiesService.list(query);
+  }
+
+  @Get("check-passport")
+  checkPassport(@Query("passport") passport: string) {
+    return this.policiesService.checkPassport(passport);
   }
 
   @Get(":id")

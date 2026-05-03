@@ -50,7 +50,7 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   private readonly pdfDirectory = policyPdfRoot;
   private expiryTimer: NodeJS.Timeout | null = null;
@@ -129,39 +129,39 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
       ...(query.partnerId ? { partnerId: query.partnerId } : {}),
       ...(issueFrom || issueTo
         ? {
-            issueDate: {
-              ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
-              ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
-            },
-          }
+          issueDate: {
+            ...(issueFrom ? { gte: startOfDay(issueFrom) } : {}),
+            ...(issueTo ? { lte: endOfDay(issueTo) } : {}),
+          },
+        }
         : {}),
       ...(search
         ? {
-            OR: [
-              { policyNumber: { contains: search, mode: "insensitive" } },
-              {
-                primaryTravellerName: {
-                  contains: search,
-                  mode: "insensitive",
-                },
+          OR: [
+            { policyNumber: { contains: search, mode: "insensitive" } },
+            {
+              primaryTravellerName: {
+                contains: search,
+                mode: "insensitive",
               },
-              {
-                partner: {
-                  name: { contains: search, mode: "insensitive" },
-                },
+            },
+            {
+              partner: {
+                name: { contains: search, mode: "insensitive" },
               },
-              {
-                travellers: {
-                  some: {
-                    passportNumber: {
-                      contains: search,
-                      mode: "insensitive",
-                    },
+            },
+            {
+              travellers: {
+                some: {
+                  passportNumber: {
+                    contains: search,
+                    mode: "insensitive",
                   },
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : {}),
     };
 
@@ -198,6 +198,61 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
     return policy;
   }
 
+  async checkPassport(passport: string) {
+    if (!passport || passport.trim().length === 0) {
+      return { exists: false };
+    }
+
+    const traveller = await this.prisma.policyTraveller.findFirst({
+      where: {
+        passportNumber: { equals: passport.trim(), mode: "insensitive" },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        policy: {
+          select: {
+            policyNumber: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!traveller) {
+      return { exists: false };
+    }
+
+    return {
+      exists: true,
+      policyNumber: traveller.policy.policyNumber,
+      startDate: traveller.policy.startDate,
+      endDate: traveller.policy.endDate,
+      status: traveller.policy.status,
+      traveller: {
+        travellerName: traveller.travellerName,
+        passportNumber: traveller.passportNumber,
+        gender: traveller.gender,
+        dateOfBirth: traveller.dateOfBirth,
+        age: traveller.age,
+        nominee: traveller.nominee,
+        nomineeRelationship: traveller.nomineeRelationship,
+        address: traveller.address,
+        pincode: traveller.pincode,
+        city: traveller.city,
+        district: traveller.district,
+        state: traveller.state,
+        country: traveller.country,
+        email: traveller.email,
+        mobile: traveller.mobile,
+        emergencyContactPerson: traveller.emergencyContactPerson,
+        emergencyContactNumber: traveller.emergencyContactNumber,
+        emergencyEmail: traveller.emergencyEmail,
+      },
+    };
+  }
+
   async create(input: CreatePolicyDto) {
     const parsed = createPolicyRequestSchema.parse(input);
 
@@ -229,6 +284,9 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
         endDate: new Date(parsed.endDate),
         insurerName: parsed.insurerName,
         productCode: parsed.productCode || null,
+        travelRegion: parsed.travelRegion || null,
+        destination: parsed.destination || null,
+        tripDays: parsed.tripDays ?? null,
         primaryTravellerName: parsed.primaryTravellerName,
         customerEmail: parsed.customerEmail || null,
         customerMobile: parsed.customerMobile || null,
@@ -239,9 +297,30 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
           create: parsed.travellers.map((traveller) => ({
             travellerName: traveller.travellerName,
             passportNumber: traveller.passportNumber,
+            gender: traveller.gender || null,
+            dateOfBirth: traveller.dateOfBirth
+              ? new Date(traveller.dateOfBirth)
+              : null,
+            age: traveller.age ?? null,
             ageOrDob: traveller.ageOrDob || null,
+            nominee: traveller.nominee || null,
+            nomineeRelationship: traveller.nomineeRelationship || null,
+            address: traveller.address || null,
+            pincode: traveller.pincode || null,
+            city: traveller.city || null,
+            district: traveller.district || null,
+            state: traveller.state || null,
+            country: traveller.country || null,
             email: traveller.email || null,
             mobile: traveller.mobile || null,
+            remarks: traveller.remarks || null,
+            crReferenceNumber: traveller.crReferenceNumber || null,
+            pastIllness: traveller.pastIllness || null,
+            emergencyContactPerson: traveller.emergencyContactPerson || null,
+            emergencyContactNumber: traveller.emergencyContactNumber || null,
+            emergencyEmail: traveller.emergencyEmail || null,
+            gstNumber: traveller.gstNumber || null,
+            gstState: traveller.gstState || null,
             planName: traveller.planName || null,
             premiumAmount: traveller.premiumAmount,
           })),
@@ -249,7 +328,7 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
         actions: {
           create: {
             actionType: "CREATE",
-            actionSummary: "Policy created through phase 1 manual-first flow",
+            actionSummary: "Policy created",
             doneBy: systemUser.id,
           },
         },
@@ -301,6 +380,8 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
       data: {
         startDate: new Date(parsed.startDate),
         endDate: new Date(parsed.endDate),
+        travelRegion: parsed.travelRegion || existing.travelRegion,
+        destination: parsed.destination || existing.destination,
         status: "ENDORSED",
         primaryTravellerName:
           parsed.travellers[0]?.travellerName || existing.primaryTravellerName,
@@ -312,9 +393,30 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
           create: parsed.travellers.map((traveller) => ({
             travellerName: traveller.travellerName,
             passportNumber: traveller.passportNumber,
+            gender: traveller.gender || null,
+            dateOfBirth: traveller.dateOfBirth
+              ? new Date(traveller.dateOfBirth)
+              : null,
+            age: traveller.age ?? null,
             ageOrDob: traveller.ageOrDob || null,
+            nominee: traveller.nominee || null,
+            nomineeRelationship: traveller.nomineeRelationship || null,
+            address: traveller.address || null,
+            pincode: traveller.pincode || null,
+            city: traveller.city || null,
+            district: traveller.district || null,
+            state: traveller.state || null,
+            country: traveller.country || null,
             email: traveller.email || null,
             mobile: traveller.mobile || null,
+            remarks: traveller.remarks || null,
+            crReferenceNumber: traveller.crReferenceNumber || null,
+            pastIllness: traveller.pastIllness || null,
+            emergencyContactPerson: traveller.emergencyContactPerson || null,
+            emergencyContactNumber: traveller.emergencyContactNumber || null,
+            emergencyEmail: traveller.emergencyEmail || null,
+            gstNumber: traveller.gstNumber || null,
+            gstState: traveller.gstState || null,
             planName: traveller.planName || parsed.preferredPlan || null,
             premiumAmount: traveller.premiumAmount,
           })),
@@ -501,7 +603,7 @@ export class PoliciesService implements OnModuleInit, OnModuleDestroy {
     const subject = parsed.subject?.trim() || `Policy ${policy.policyNumber}`;
     const text = [
       parsed.message?.trim() ||
-        `Please find attached the policy PDF for ${policy.policyNumber}.`,
+      `Please find attached the policy PDF for ${policy.policyNumber}.`,
       "",
       `Policy Number: ${policy.policyNumber}`,
       `Partner: ${policy.partner.name}`,
