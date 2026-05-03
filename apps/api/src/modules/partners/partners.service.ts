@@ -9,7 +9,7 @@ import type { CreatePartnerDto } from "./dto/create-partner.dto";
 
 @Injectable()
 export class PartnersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   list() {
     return this.prisma.partner.findMany({
@@ -47,6 +47,17 @@ export class PartnersService {
         contactName: parsed.contactName || null,
         email: parsed.email || null,
         phone: parsed.phone || null,
+        gstNumber: parsed.gstNumber || null,
+        panNumber: parsed.panNumber || null,
+        bankName: parsed.bankName || null,
+        bankAddress: parsed.bankAddress || null,
+        bankAccountType: parsed.bankAccountType || null,
+        bankAccountNumber: parsed.bankAccountNumber || null,
+        bankSwiftCode: parsed.bankSwiftCode || null,
+        ifscCode: parsed.ifscCode || null,
+        micrCode: parsed.micrCode || null,
+        companyNameForInvoice: parsed.companyNameForInvoice || null,
+        chequeImageUrl: parsed.chequeImageUrl || null,
       },
     });
   }

@@ -528,6 +528,33 @@ select {
   font-size: 24px;
 }
 
+.partner-form-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.partner-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.partner-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.partner-section-divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 20px 0;
+}
+
 .table-shell {
   overflow: auto;
   border-radius: 14px;

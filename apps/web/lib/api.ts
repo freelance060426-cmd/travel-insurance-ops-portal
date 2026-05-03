@@ -5,6 +5,17 @@ export type ApiPartner = {
   contactName?: string | null;
   email?: string | null;
   phone?: string | null;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  bankName?: string | null;
+  bankAddress?: string | null;
+  bankAccountType?: string | null;
+  bankAccountNumber?: string | null;
+  bankSwiftCode?: string | null;
+  ifscCode?: string | null;
+  micrCode?: string | null;
+  companyNameForInvoice?: string | null;
+  chequeImageUrl?: string | null;
   status: string;
 };
 

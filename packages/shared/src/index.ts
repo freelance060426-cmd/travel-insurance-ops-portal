@@ -57,6 +57,17 @@ export const partnerCreateSchema = z.object({
   contactName: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional(),
+  gstNumber: z.string().optional(),
+  panNumber: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAddress: z.string().optional(),
+  bankAccountType: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankSwiftCode: z.string().optional(),
+  ifscCode: z.string().optional(),
+  micrCode: z.string().optional(),
+  companyNameForInvoice: z.string().optional(),
+  chequeImageUrl: z.string().optional(),
 });
 
 export type PartnerCreateInput = z.infer<typeof partnerCreateSchema>;

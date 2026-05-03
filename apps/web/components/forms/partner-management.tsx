@@ -7,12 +7,24 @@ import type { ApiPartner } from "@/lib/api";
 import { createPartner } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
+const BANK_ACCOUNT_TYPES = ["Savings", "Current", "OD", "CC", "NRE", "NRO"];
+
 type PartnerDraft = {
   partnerCode: string;
   name: string;
   contactName: string;
   email: string;
   phone: string;
+  gstNumber: string;
+  panNumber: string;
+  bankName: string;
+  bankAddress: string;
+  bankAccountType: string;
+  bankAccountNumber: string;
+  bankSwiftCode: string;
+  ifscCode: string;
+  micrCode: string;
+  companyNameForInvoice: string;
 };
 
 const initialDraft: PartnerDraft = {
@@ -21,6 +33,16 @@ const initialDraft: PartnerDraft = {
   contactName: "",
   email: "",
   phone: "",
+  gstNumber: "",
+  panNumber: "",
+  bankName: "",
+  bankAddress: "",
+  bankAccountType: "",
+  bankAccountNumber: "",
+  bankSwiftCode: "",
+  ifscCode: "",
+  micrCode: "",
+  companyNameForInvoice: "",
 };
 
 export function PartnerManagement({
@@ -76,9 +98,8 @@ export function PartnerManagement({
             <p className="portal-eyebrow">PARTNER MANAGEMENT</p>
             <h1 className="page-title">Manage partners and lookup codes</h1>
             <p className="page-subtitle">
-              This phase 1 screen handles the simple partner master: create,
-              list, and keep partner code, status, and contact details ready for
-              policy linkage.
+              Create and manage partner records with contact and banking details
+              for policy linkage and invoice generation.
             </p>
           </div>
         </div>
@@ -87,7 +108,7 @@ export function PartnerManagement({
           <article className="metric-card tone-teal">
             <p>Total partners</p>
             <strong>{initialPartners.length}</strong>
-            <span>Across current phase 1 operations</span>
+            <span>Registered partner records</span>
           </article>
           <article className="metric-card tone-blue">
             <p>Active partners</p>
@@ -97,102 +118,201 @@ export function PartnerManagement({
           <article className="metric-card tone-amber">
             <p>Inactive partners</p>
             <strong>{initialPartners.length - activeCount}</strong>
-            <span>Hidden from normal create flow</span>
+            <span>Hidden from create flow</span>
           </article>
         </div>
       </section>
 
-      <div className="form-layout">
-        <section className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">NEW PARTNER</p>
-              <h3>Create partner record</h3>
+      <section className="content-card">
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">NEW PARTNER</p>
+            <h3>Create partner record</h3>
+          </div>
+        </div>
+
+        <div className="partner-form-sections">
+          <div className="partner-form-section">
+            <h4 className="partner-section-label">Basic Details</h4>
+            <div className="form-grid form-grid--invoice">
+              <label>
+                <span>Partner Code *</span>
+                <input
+                  value={draft.partnerCode}
+                  onChange={(event) =>
+                    updateDraft("partnerCode", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Partner Name *</span>
+                <input
+                  value={draft.name}
+                  onChange={(event) => updateDraft("name", event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Contact Name</span>
+                <input
+                  value={draft.contactName}
+                  onChange={(event) =>
+                    updateDraft("contactName", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={draft.email}
+                  onChange={(event) => updateDraft("email", event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Phone</span>
+                <input
+                  value={draft.phone}
+                  onChange={(event) => updateDraft("phone", event.target.value)}
+                />
+              </label>
+              <label>
+                <span>GST Number</span>
+                <input
+                  value={draft.gstNumber}
+                  placeholder="e.g. 06AAGFU7535C1Z8"
+                  onChange={(event) =>
+                    updateDraft("gstNumber", event.target.value.toUpperCase())
+                  }
+                />
+              </label>
+              <label>
+                <span>PAN Number</span>
+                <input
+                  value={draft.panNumber}
+                  placeholder="e.g. AAGFU7535C"
+                  onChange={(event) =>
+                    updateDraft("panNumber", event.target.value.toUpperCase())
+                  }
+                />
+              </label>
             </div>
           </div>
 
-          <div className="form-grid form-grid--invoice">
-            <label>
-              <span>Partner Code</span>
-              <input
-                value={draft.partnerCode}
-                onChange={(event) =>
-                  updateDraft("partnerCode", event.target.value)
-                }
-              />
-            </label>
-            <label>
-              <span>Partner Name</span>
-              <input
-                value={draft.name}
-                onChange={(event) => updateDraft("name", event.target.value)}
-              />
-            </label>
-            <label>
-              <span>Contact Name</span>
-              <input
-                value={draft.contactName}
-                onChange={(event) =>
-                  updateDraft("contactName", event.target.value)
-                }
-              />
-            </label>
-            <label>
-              <span>Email</span>
-              <input
-                value={draft.email}
-                onChange={(event) => updateDraft("email", event.target.value)}
-              />
-            </label>
-            <label>
-              <span>Phone</span>
-              <input
-                value={draft.phone}
-                onChange={(event) => updateDraft("phone", event.target.value)}
-              />
-            </label>
-          </div>
+          <hr className="partner-section-divider" />
 
-          <div className="action-row">
-            <button
-              className="ghost-button"
-              type="button"
-              onClick={() =>
-                setDraft({
-                  ...initialDraft,
-                  partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
-                })
-              }
-            >
-              Reset
-            </button>
-            <button
-              className="primary-button"
-              type="button"
-              onClick={handleCreatePartner}
-              disabled={pending}
-            >
-              {pending ? "Saving..." : "Create partner"}
-            </button>
+          <div className="partner-form-section">
+            <h4 className="partner-section-label">Banking Details</h4>
+            <div className="form-grid form-grid--invoice">
+              <label>
+                <span>Bank Name</span>
+                <input
+                  value={draft.bankName}
+                  onChange={(event) =>
+                    updateDraft("bankName", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Bank Address</span>
+                <input
+                  value={draft.bankAddress}
+                  onChange={(event) =>
+                    updateDraft("bankAddress", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Bank Account Type</span>
+                <select
+                  value={draft.bankAccountType}
+                  onChange={(event) =>
+                    updateDraft("bankAccountType", event.target.value)
+                  }
+                >
+                  <option value="">Select Account Type</option>
+                  {BANK_ACCOUNT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Bank Account Number</span>
+                <input
+                  value={draft.bankAccountNumber}
+                  onChange={(event) =>
+                    updateDraft("bankAccountNumber", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Bank SWIFT Code</span>
+                <input
+                  value={draft.bankSwiftCode}
+                  onChange={(event) =>
+                    updateDraft(
+                      "bankSwiftCode",
+                      event.target.value.toUpperCase(),
+                    )
+                  }
+                />
+              </label>
+              <label>
+                <span>IFSC Code</span>
+                <input
+                  value={draft.ifscCode}
+                  onChange={(event) =>
+                    updateDraft("ifscCode", event.target.value.toUpperCase())
+                  }
+                />
+              </label>
+              <label>
+                <span>MICR Code</span>
+                <input
+                  value={draft.micrCode}
+                  onChange={(event) =>
+                    updateDraft("micrCode", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                <span>Company Name For Invoice</span>
+                <input
+                  value={draft.companyNameForInvoice}
+                  placeholder="e.g. Proprietorship"
+                  onChange={(event) =>
+                    updateDraft("companyNameForInvoice", event.target.value)
+                  }
+                />
+              </label>
+            </div>
           </div>
-        </section>
+        </div>
 
-        <aside className="content-card summary-card">
-          <p className="portal-eyebrow">PARTNER RULES</p>
-          <h3>Phase 1 assumptions</h3>
-          <ul className="activity-list">
-            <li>
-              Partner master is a simple lookup table, not a full onboarding
-              workflow.
-            </li>
-            <li>Partner code should stay unique.</li>
-            <li>
-              Only active partners should be shown in normal policy creation
-              later.
-            </li>
-          </ul>
-        </aside>
-      </div>
+        <div className="action-row">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() =>
+              setDraft({
+                ...initialDraft,
+                partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
+              })
+            }
+          >
+            Reset
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={handleCreatePartner}
+            disabled={pending}
+          >
+            {pending ? "Saving..." : "Create Partner"}
+          </button>
+        </div>
+      </section>
 
       <section className="content-card">
         <div className="section-heading">
@@ -211,6 +331,8 @@ export function PartnerManagement({
                 <th>Contact</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>GST</th>
+                <th>Bank</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -222,6 +344,8 @@ export function PartnerManagement({
                   <td>{partner.contactName || "—"}</td>
                   <td>{partner.email || "—"}</td>
                   <td>{partner.phone || "—"}</td>
+                  <td>{partner.gstNumber || "—"}</td>
+                  <td>{partner.bankName || "—"}</td>
                   <td>
                     <span
                       className={`status-pill status-${partner.status.toLowerCase()}`}
