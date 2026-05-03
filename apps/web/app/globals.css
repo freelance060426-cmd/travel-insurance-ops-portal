@@ -844,6 +844,10 @@ select {
   gap: 10px;
 }
 
+.workflow-stepper--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .workflow-step {
   display: flex;
   gap: 10px;
@@ -894,6 +898,61 @@ select {
 .workflow-step--active .workflow-step__index {
   background: linear-gradient(135deg, var(--brand-strong), var(--brand));
   color: #041214;
+}
+
+.workflow-step--done {
+  border-color: rgba(20, 146, 171, 0.22);
+  background: #f8fdfe;
+  cursor: pointer;
+}
+
+.workflow-step--done .workflow-step__index {
+  background: var(--brand-strong);
+  color: #ffffff;
+}
+
+button.workflow-step {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+button.workflow-step:disabled {
+  cursor: default;
+}
+
+.input-readonly {
+  background: #f8fafc;
+  color: var(--muted);
+  cursor: default;
+}
+
+.wizard-field-group {
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+
+.wizard-field-group__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 12px 0;
+}
+
+.span-full {
+  grid-column: 1 / -1;
+}
+
+.review-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.review-section {
+  display: grid;
+  gap: 12px;
 }
 
 .policy-workflow-shell {

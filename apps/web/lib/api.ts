@@ -19,13 +19,71 @@ export type ApiPartner = {
   status: string;
 };
 
+export type ApiPlan = {
+  id: string;
+  name: string;
+  insurer: string;
+  region?: string | null;
+  minDays?: number | null;
+  maxDays?: number | null;
+  premiumAmount: string | number;
+  isActive: boolean;
+};
+
+export type ApiPassportCheck = {
+  exists: boolean;
+  policyNumber?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  traveller?: {
+    travellerName: string;
+    passportNumber: string;
+    gender?: string | null;
+    dateOfBirth?: string | null;
+    age?: number | null;
+    nominee?: string | null;
+    nomineeRelationship?: string | null;
+    address?: string | null;
+    pincode?: string | null;
+    city?: string | null;
+    district?: string | null;
+    state?: string | null;
+    country?: string | null;
+    email?: string | null;
+    mobile?: string | null;
+    emergencyContactPerson?: string | null;
+    emergencyContactNumber?: string | null;
+    emergencyEmail?: string | null;
+  };
+};
+
 export type ApiPolicyTraveller = {
   id: string;
   travellerName: string;
   passportNumber: string;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  age?: number | null;
   ageOrDob?: string | null;
+  nominee?: string | null;
+  nomineeRelationship?: string | null;
+  address?: string | null;
+  pincode?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  country?: string | null;
   email?: string | null;
   mobile?: string | null;
+  remarks?: string | null;
+  crReferenceNumber?: string | null;
+  pastIllness?: string | null;
+  emergencyContactPerson?: string | null;
+  emergencyContactNumber?: string | null;
+  emergencyEmail?: string | null;
+  gstNumber?: string | null;
+  gstState?: string | null;
   planName?: string | null;
   premiumAmount?: string | number | null;
 };
@@ -258,6 +316,28 @@ export async function createPartner(
       method: "POST",
       body: JSON.stringify(payload),
     },
+    token,
+  );
+}
+
+export async function fetchPlans(
+  token?: string,
+  params?: Record<string, string | undefined>,
+) {
+  return fetchJson<ApiPlan[]>(
+    `/api/plans${buildQuery(params)}`,
+    undefined,
+    token,
+  );
+}
+
+export async function checkPassport(
+  passport: string,
+  token?: string,
+) {
+  return fetchJson<ApiPassportCheck>(
+    `/api/policies/check-passport?passport=${encodeURIComponent(passport)}`,
+    undefined,
     token,
   );
 }
