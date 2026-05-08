@@ -130,6 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const currentModule = getModuleCopy(pathname);
+  const isDashboard = pathname === "/dashboard";
 
   function handleLogout() {
     signOut();
@@ -173,35 +174,49 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
         </nav>
+
+        <div className="portal-sidebar-footer">
+          <div className="portal-sidebar-footer__avatar">
+            {(user?.name ?? "U").slice(0, 2).toUpperCase()}
+          </div>
+          <div className="portal-sidebar-footer__text">
+            <strong>{user?.name ?? "User"}</strong>
+            <span>{user?.role ?? "Unknown role"}</span>
+          </div>
+          <button
+            className="portal-sidebar-footer__logout"
+            type="button"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+          </button>
+        </div>
       </aside>
 
       <div className="portal-main">
-        <header className="portal-topbar">
-          <div className="portal-topbar__copy">
-            <p className="portal-eyebrow">{currentModule.eyebrow}</p>
-            <h2>{currentModule.title}</h2>
-            <p>{currentModule.description}</p>
-          </div>
-
-          <div className="portal-topbar__status portal-topbar__status--compact">
-            <div className="portal-user-meta">
-              <div className="portal-user-meta__text">
-                <strong>{user?.name ?? "User"}</strong>
-                <span>{user?.role ?? "Unknown role"}</span>
-              </div>
-              <div className="portal-avatar">
-                {(user?.name ?? "U").slice(0, 2).toUpperCase()}
-              </div>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
+        {!isDashboard && (
+          <header className="portal-topbar">
+            <div className="portal-topbar__copy">
+              <p className="portal-eyebrow">{currentModule.eyebrow}</p>
+              <h2>{currentModule.title}</h2>
+              <p>{currentModule.description}</p>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <main className="portal-content">{children}</main>
       </div>

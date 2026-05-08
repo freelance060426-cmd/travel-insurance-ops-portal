@@ -146,6 +146,7 @@ export function InvoiceManagementWorkspace({
     "Invoice generated for an eligible policy record.",
   );
   const [pending, setPending] = useState(false);
+  const [partnerFilter, setPartnerFilter] = useState("");
 
   const totalInvoices = invoices.length;
   const readyInvoices = invoices.filter(
@@ -164,9 +165,27 @@ export function InvoiceManagementWorkspace({
   const canGenerateSingle = selectedPolicyIds.length === 1 && !isGenerating;
   const canGenerateBulk = selectedPolicyIds.length >= 2 && !isGenerating;
 
-  const allSelected =
-    eligiblePolicies.length > 0 &&
-    selectedPolicyIds.length === eligiblePolicies.length;
+  const uniquePartners = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of eligiblePolicies) {
+      map.set(p.partner.id ?? p.partner.name, p.partner.name);
+    }
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [eligiblePolicies]);
+
+  const filteredPolicies = useMemo(
+    () =>
+      partnerFilter
+        ? eligiblePolicies.filter(
+            (p) => (p.partner.id ?? p.partner.name) === partnerFilter,
+          )
+        : eligiblePolicies,
+    [eligiblePolicies, partnerFilter],
+  );
+
+  const allFiltered =
+    filteredPolicies.length > 0 &&
+    filteredPolicies.every((p) => selectedPolicyIds.includes(p.id));
 
   function togglePolicy(policyId: string) {
     setSelectedPolicyIds((current) =>
@@ -177,11 +196,14 @@ export function InvoiceManagementWorkspace({
   }
 
   function toggleAllPolicies() {
-    setSelectedPolicyIds((current) =>
-      current.length === eligiblePolicies.length
-        ? []
-        : eligiblePolicies.map((policy) => policy.id),
-    );
+    const filteredIds = filteredPolicies.map((p) => p.id);
+    setSelectedPolicyIds((current) => {
+      const allChecked = filteredIds.every((id) => current.includes(id));
+      if (allChecked) {
+        return current.filter((id) => !filteredIds.includes(id));
+      }
+      return [...new Set([...current, ...filteredIds])];
+    });
   }
 
   async function handleGenerate(mode: "single" | "bulk") {
@@ -292,151 +314,40 @@ export function InvoiceManagementWorkspace({
 
       {isAdmin && (
         <section className="content-card invoice-generation-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">GENERATION SETUP</p>
-              <h3>Confirm rules before creating invoices</h3>
-              <p className="section-note">
-                Select eligible policies below to generate a combined invoice.
-              </p>
-            </div>
-            <Link className="ghost-button" href="/invoices/new">
-              Single generate form
-            </Link>
-          </div>
-
-          <div className="invoice-generation-layout">
-            <div className="invoice-setup-panel">
-              <div className="filter-grid filter-grid--secondary invoice-setup-fields">
-                <label>
-                  <span>Invoice Date</span>
-                  <input
-                    type="date"
-                    value={invoiceDate}
-                    onChange={(event) => setInvoiceDate(event.target.value)}
-                  />
-                </label>
-                <label className="invoice-notes">
-                  <span>Generation note</span>
-                  <textarea
-                    rows={2}
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              <div className="generation-readiness">
-                <div>
-                  <span>Selected policies</span>
-                  <strong>{selectedPolicyIds.length}</strong>
-                </div>
-                <div>
-                  <span>Invoice records to create</span>
-                  <strong>{selectedPolicyIds.length}</strong>
-                </div>
-                <div>
-                  <span>Selected premium value</span>
-                  <strong>
-                    ₹ {selectedPremiumTotal.toLocaleString("en-IN")}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            <aside className="invoice-rule-panel">
-              <p className="portal-eyebrow">GENERATION MODE</p>
-              <div className="invoice-mode-grid">
-                <div
-                  className={`invoice-mode-card ${
-                    selectedPolicyIds.length === 1 ? "is-ready" : ""
-                  }`}
-                >
-                  <span>Single</span>
-                  <strong>Exactly 1 policy</strong>
-                  <small>Creates one invoice for one selected policy.</small>
-                </div>
-                <div
-                  className={`invoice-mode-card ${
-                    selectedPolicyIds.length >= 2 ? "is-ready" : ""
-                  }`}
-                >
-                  <span>Combined</span>
-                  <strong>2 or more policies</strong>
-                  <small>
-                    Creates one invoice covering all selected policies.
-                  </small>
-                </div>
-              </div>
-              <div className="invoice-selection-summary">
-                <span>Current selection</span>
-                <strong>
-                  {selectedPolicyIds.length
-                    ? `${selectedPolicyIds.length} selected`
-                    : "No policies selected"}
-                </strong>
-                <small>
-                  {selectedPolicies.length
-                    ? selectedPolicies
-                        .slice(0, 2)
-                        .map((policy) => policy.policyNumber)
-                        .join(", ") +
-                      (selectedPolicies.length > 2
-                        ? ` +${selectedPolicies.length - 2} more`
-                        : "")
-                    : "Choose policies below to unlock generation."}
-                </small>
-              </div>
-            </aside>
-          </div>
-
-          <div className="invoice-generate-bar">
-            <div>
-              <span>Generation action</span>
-              <strong>
-                {selectedPolicyIds.length === 0
-                  ? "Select policies to continue"
-                  : `${selectedPolicyIds.length} invoice${
-                      selectedPolicyIds.length === 1 ? "" : "s"
-                    } will be created`}
-              </strong>
-            </div>
-            <button
-              className="ghost-button"
-              type="button"
-              disabled={!canGenerateSingle}
-              onClick={() => handleGenerate("single")}
-            >
-              Generate Invoice
-            </button>
-            <button
-              className="primary-button"
-              type="button"
-              disabled={!canGenerateBulk}
-              onClick={() => handleGenerate("bulk")}
-            >
-              Generate Combined Invoice
-            </button>
-          </div>
-
           <div className="invoice-selection-panel">
             <div className="invoice-selection-toolbar">
               <div>
                 <p className="portal-eyebrow">ELIGIBLE POLICIES</p>
                 <h3>Choose policies without invoices</h3>
               </div>
-              {eligiblePolicies.length ? (
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={toggleAllPolicies}
-                >
-                  {allSelected ? "Clear selection" : "Select all eligible"}
-                </button>
-              ) : null}
+              <div className="invoice-selection-toolbar__actions">
+                {uniquePartners.length > 1 && (
+                  <select
+                    className="invoice-partner-filter"
+                    value={partnerFilter}
+                    onChange={(e) => setPartnerFilter(e.target.value)}
+                  >
+                    <option value="">All partners</option>
+                    {uniquePartners.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {filteredPolicies.length ? (
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={toggleAllPolicies}
+                  >
+                    {allFiltered ? "Clear selection" : "Select all eligible"}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
-            {eligiblePolicies.length === 0 ? (
+            {filteredPolicies.length === 0 ? (
               <div className="invoice-empty-state">
                 <span>No pending candidates</span>
                 <strong>Every eligible policy already has an invoice.</strong>
@@ -453,7 +364,7 @@ export function InvoiceManagementWorkspace({
                       <th>
                         <input
                           type="checkbox"
-                          checked={allSelected}
+                          checked={allFiltered}
                           onChange={toggleAllPolicies}
                           aria-label="Select all eligible policies"
                         />
@@ -466,7 +377,7 @@ export function InvoiceManagementWorkspace({
                     </tr>
                   </thead>
                   <tbody>
-                    {eligiblePolicies.map((policy) => {
+                    {filteredPolicies.map((policy) => {
                       const isSelected = selectedPolicyIds.includes(policy.id);
 
                       return (
@@ -504,6 +415,96 @@ export function InvoiceManagementWorkspace({
                 </table>
               </div>
             )}
+          </div>
+
+          <div className="invoice-gen-unified">
+            <div className="section-heading" style={{ padding: 0 }}>
+              <div>
+                <p className="portal-eyebrow">GENERATE INVOICES</p>
+                <h3>Configure and generate</h3>
+              </div>
+              <Link className="ghost-button" href="/invoices/new">
+                Single generate form
+              </Link>
+            </div>
+
+            <div className="invoice-gen-fields">
+              <label>
+                <span>Invoice Date</span>
+                <input
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(event) => setInvoiceDate(event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Note</span>
+                <textarea
+                  rows={2}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="invoice-gen-summary">
+              <div className="invoice-gen-stat">
+                <span>{selectedPolicyIds.length}</span>
+                <small>
+                  {selectedPolicyIds.length === 1 ? "policy" : "policies"}{" "}
+                  selected
+                </small>
+              </div>
+              <div className="invoice-gen-stat">
+                <span>₹ {selectedPremiumTotal.toLocaleString("en-IN")}</span>
+                <small>premium total</small>
+              </div>
+              <div className="invoice-gen-stat">
+                <span>
+                  {selectedPolicyIds.length === 0
+                    ? "—"
+                    : selectedPolicyIds.length === 1
+                      ? "Single"
+                      : "Combined"}
+                </span>
+                <small>
+                  {selectedPolicyIds.length === 0
+                    ? "select policies above"
+                    : selectedPolicyIds.length === 1
+                      ? "one invoice for one policy"
+                      : `one invoice for ${selectedPolicyIds.length} policies`}
+                </small>
+              </div>
+              {selectedPolicies.length > 0 && (
+                <div className="invoice-gen-selection-hint">
+                  {selectedPolicies
+                    .slice(0, 3)
+                    .map((p) => p.policyNumber)
+                    .join(", ")}
+                  {selectedPolicies.length > 3 &&
+                    ` +${selectedPolicies.length - 3} more`}
+                </div>
+              )}
+            </div>
+
+            <div className="invoice-gen-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={!canGenerateSingle}
+                onClick={() => handleGenerate("single")}
+              >
+                Generate Invoice
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={!canGenerateBulk}
+                onClick={() => handleGenerate("bulk")}
+              >
+                Generate Combined Invoice
+              </button>
+            </div>
           </div>
         </section>
       )}

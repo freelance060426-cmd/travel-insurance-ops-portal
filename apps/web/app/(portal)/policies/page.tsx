@@ -39,12 +39,13 @@ export default async function PoliciesPage({
   let rows: Array<{
     id: string;
     policyNumber: string;
-    traveller: string;
-    passport: string;
-    partner: string;
     issueDate: string;
-    travelWindow: string;
+    partner: string;
+    startDate: string;
+    endDate: string;
+    insurerName: string;
     status: string;
+    traveller: string;
     premium: string;
   }> = [];
   let partners: ApiPartner[] = [];
@@ -63,14 +64,13 @@ export default async function PoliciesPage({
       rows = policiesResult.value.map((policy) => ({
         id: policy.id,
         policyNumber: policy.policyNumber,
-        traveller: policy.primaryTravellerName,
-        passport: policy.travellers[0]?.passportNumber ?? "N/A",
-        partner: policy.partner.name,
         issueDate: formatDate(policy.issueDate),
-        travelWindow: formatTravelWindow(policy.startDate, policy.endDate),
+        partner: policy.partner.name,
         startDate: formatDate(policy.startDate),
         endDate: formatDate(policy.endDate),
+        insurerName: policy.insurerName ?? "—",
         status: policy.status,
+        traveller: policy.primaryTravellerName,
         premium:
           policy.premiumAmount !== null && policy.premiumAmount !== undefined
             ? `₹ ${Number(policy.premiumAmount).toLocaleString("en-IN")}`
@@ -187,12 +187,13 @@ export default async function PoliciesPage({
             <thead>
               <tr>
                 <th>Policy No.</th>
-                <th>Traveller</th>
-                <th>Passport</th>
-                <th>Partner</th>
                 <th>Issue Date</th>
-                <th>Travel</th>
+                <th>Partner</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Insurer</th>
                 <th>Status</th>
+                <th>Traveller</th>
                 <th>Premium</th>
               </tr>
             </thead>
@@ -207,11 +208,11 @@ export default async function PoliciesPage({
                       {policy.policyNumber}
                     </Link>
                   </td>
-                  <td>{policy.traveller}</td>
-                  <td>{policy.passport}</td>
-                  <td>{policy.partner}</td>
                   <td>{policy.issueDate}</td>
-                  <td>{policy.travelWindow}</td>
+                  <td>{policy.partner}</td>
+                  <td>{policy.startDate}</td>
+                  <td>{policy.endDate}</td>
+                  <td>{policy.insurerName}</td>
                   <td>
                     <span
                       className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}
@@ -219,12 +220,13 @@ export default async function PoliciesPage({
                       {policy.status}
                     </span>
                   </td>
+                  <td>{policy.traveller}</td>
                   <td>{policy.premium}</td>
                 </tr>
               ))}
               {!rows.length ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="data-empty-state">
                       <span>No matching policies</span>
                       <strong>No policies match the current filters.</strong>

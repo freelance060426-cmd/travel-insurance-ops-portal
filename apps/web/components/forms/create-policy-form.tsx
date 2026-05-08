@@ -6,28 +6,17 @@ import { toast } from "sonner";
 import type { ApiPartner, ApiPlan } from "@/lib/api";
 import { checkPassport, createPolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
-
-/* ─── constants ─── */
-
-const TRAVEL_REGIONS = ["Asia", "Europe", "Americas", "Worldwide"];
-
-const NOMINEE_RELATIONSHIPS = [
-  "Father",
-  "Mother",
-  "Spouse",
-  "Brother",
-  "Sister",
-  "Son",
-  "Daughter",
-  "Uncle",
-  "Aunty",
-  "Friend",
-  "Others",
-];
+import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  ALL_COUNTRIES,
+  NOMINEE_RELATIONSHIPS,
+  REGION_COUNTRIES,
+  TRAVEL_REGIONS,
+} from "@/lib/travel-constants";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/* ─── types ─── */
+/* â”€â”€â”€ types â”€â”€â”€ */
 
 type TravellerDraft = {
   _key: string;
@@ -60,13 +49,13 @@ type TravellerDraft = {
 
 type TripDraft = {
   travelRegion: string;
-  destination: string;
+  destination: string[];
   partnerId: string;
   startDate: string;
   endDate: string;
 };
 
-/* ─── helpers ─── */
+/* â”€â”€â”€ helpers â”€â”€â”€ */
 
 function computeDays(start: string, end: string) {
   if (!start || !end) return 0;
@@ -112,7 +101,7 @@ function freshTraveller(): TravellerDraft {
   };
 }
 
-/* ─── component ─── */
+/* â”€â”€â”€ component â”€â”€â”€ */
 
 export function CreatePolicyForm({
   initialPartners,
@@ -134,7 +123,7 @@ export function CreatePolicyForm({
 
   const [trip, setTrip] = useState<TripDraft>({
     travelRegion: "",
-    destination: "",
+    destination: [],
     partnerId:
       isPartnerUser && userPartnerId
         ? userPartnerId
@@ -176,8 +165,32 @@ export function CreatePolicyForm({
   );
 
   function updateTrip<K extends keyof TripDraft>(key: K, value: TripDraft[K]) {
-    setTrip((c) => ({ ...c, [key]: value }));
+    setTrip((c) => {
+      const next = { ...c, [key]: value };
+      if (key === "travelRegion") next.destination = [];
+      return next;
+    });
   }
+
+  function updateTripDays(days: number) {
+    if (!trip.startDate || days <= 0) return;
+    const start = new Date(trip.startDate);
+    start.setDate(start.getDate() + days);
+    setTrip((c) => ({ ...c, endDate: start.toISOString().slice(0, 10) }));
+  }
+
+  function toggleDestination(country: string) {
+    setTrip((c) => {
+      const selected = c.destination.includes(country)
+        ? c.destination.filter((d) => d !== country)
+        : [...c.destination, country];
+      return { ...c, destination: selected };
+    });
+  }
+
+  const availableCountries = trip.travelRegion
+    ? (REGION_COUNTRIES[trip.travelRegion] ?? [])
+    : [];
 
   function updateTraveller(
     key: string,
@@ -296,7 +309,8 @@ export function CreatePolicyForm({
         endDate: trip.endDate,
         insurerName: "Bajaj Allianz",
         travelRegion: trip.travelRegion || undefined,
-        destination: trip.destination || undefined,
+        destination:
+          trip.destination.length > 0 ? trip.destination.join(", ") : undefined,
         tripDays: tripDays || undefined,
         primaryTravellerName:
           travellers[0]?.travellerName || "Primary traveller",
@@ -350,6 +364,14 @@ export function CreatePolicyForm({
 
   function goNext() {
     if (step === 1) {
+      if (!trip.travelRegion) {
+        toast.error("Select a travel region to continue.");
+        return;
+      }
+      if (trip.destination.length === 0) {
+        toast.error("Select at least one destination country.");
+        return;
+      }
       if (!trip.partnerId && !isPartnerUser) {
         toast.error("Select a partner to continue.");
         return;
@@ -380,7 +402,7 @@ export function CreatePolicyForm({
     },
     {
       label: "Review & Confirm",
-      detail: `₹ ${totalPremium.toLocaleString("en-IN")}`,
+      detail: `â‚¹ ${totalPremium.toLocaleString("en-IN")}`,
     },
   ];
 
@@ -405,7 +427,7 @@ export function CreatePolicyForm({
           </div>
           <div>
             <span>Premium</span>
-            <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
+            <strong>â‚¹ {totalPremium.toLocaleString("en-IN")}</strong>
           </div>
         </div>
       </section>
@@ -423,8 +445,24 @@ export function CreatePolicyForm({
               onClick={() => num < step && setStep(num)}
               disabled={num > step}
             >
-              <span className="workflow-step__index">
-                {status === "done" ? "✓" : num}
+              <span className="workflow-step__index !flex">
+                {status === "done" ? (
+                  <svg
+                    style={{ display: "block" }}
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  num
+                )}
               </span>
               <div>
                 <strong>{s.label}</strong>
@@ -451,7 +489,7 @@ export function CreatePolicyForm({
                 value={trip.travelRegion}
                 onChange={(e) => updateTrip("travelRegion", e.target.value)}
               >
-                <option value="">Select region</option>
+                <option value="">Select Travel Region</option>
                 {TRAVEL_REGIONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -460,11 +498,21 @@ export function CreatePolicyForm({
               </select>
             </label>
             <label>
-              <span>Destination</span>
-              <input
-                value={trip.destination}
-                placeholder="Country name(s)"
-                onChange={(e) => updateTrip("destination", e.target.value)}
+              <span>
+                Destination
+                {trip.destination.length > 0
+                  ? ` (${trip.destination.length})`
+                  : ""}
+              </span>
+              <MultiSelect
+                options={availableCountries}
+                selected={trip.destination}
+                onChange={(selected) =>
+                  setTrip((c) => ({ ...c, destination: selected }))
+                }
+                placeholder="Select countries"
+                disabled={!trip.travelRegion}
+                disabledMessage="Select a region first"
               />
             </label>
             {!isPartnerUser && (
@@ -504,10 +552,14 @@ export function CreatePolicyForm({
             <label>
               <span>Trip Days</span>
               <input
-                type="text"
-                value={tripDays > 0 ? `${tripDays} days` : "—"}
-                readOnly
-                className="input-readonly"
+                type="number"
+                min="1"
+                value={tripDays > 0 ? tripDays : ""}
+                placeholder="â€”"
+                onChange={(e) => {
+                  const days = parseInt(e.target.value, 10);
+                  if (days > 0) updateTripDays(days);
+                }}
               />
             </label>
           </div>
@@ -515,7 +567,7 @@ export function CreatePolicyForm({
           <div className="action-row">
             <span />
             <button className="primary-button" type="button" onClick={goNext}>
-              Next → Traveller Details
+              Next â†’ Traveller Details
             </button>
           </div>
         </section>
@@ -559,10 +611,10 @@ export function CreatePolicyForm({
 
           <div className="action-row">
             <button className="ghost-button" type="button" onClick={goBack}>
-              ← Back
+              â† Back
             </button>
             <button className="primary-button" type="button" onClick={goNext}>
-              Next → Review & Confirm
+              Next â†’ Review & Confirm
             </button>
           </div>
         </section>
@@ -583,15 +635,19 @@ export function CreatePolicyForm({
               <div className="summary-pairs">
                 <div>
                   <span>Partner</span>
-                  <strong>{selectedPartner?.name ?? "—"}</strong>
+                  <strong>{selectedPartner?.name ?? "â€”"}</strong>
                 </div>
                 <div>
                   <span>Region</span>
-                  <strong>{trip.travelRegion || "—"}</strong>
+                  <strong>{trip.travelRegion || "â€”"}</strong>
                 </div>
                 <div>
                   <span>Destination</span>
-                  <strong>{trip.destination || "—"}</strong>
+                  <strong>
+                    {trip.destination.length > 0
+                      ? trip.destination.join(", ")
+                      : "â€”"}
+                  </strong>
                 </div>
                 <div>
                   <span>Travel window</span>
@@ -627,12 +683,12 @@ export function CreatePolicyForm({
                       return (
                         <tr key={t._key}>
                           <td>{i + 1}</td>
-                          <td>{t.travellerName || "—"}</td>
-                          <td>{t.passportNumber || "—"}</td>
-                          <td>{t.gender || "—"}</td>
-                          <td>{t.dateOfBirth || "—"}</td>
-                          <td>{plan?.name || "—"}</td>
-                          <td>₹ {t.premiumAmount.toLocaleString("en-IN")}</td>
+                          <td>{t.travellerName || "â€”"}</td>
+                          <td>{t.passportNumber || "â€”"}</td>
+                          <td>{t.gender || "â€”"}</td>
+                          <td>{t.dateOfBirth || "â€”"}</td>
+                          <td>{plan?.name || "â€”"}</td>
+                          <td>â‚¹ {t.premiumAmount.toLocaleString("en-IN")}</td>
                         </tr>
                       );
                     })}
@@ -646,18 +702,20 @@ export function CreatePolicyForm({
               <div className="summary-pairs">
                 <div>
                   <span>Subtotal</span>
-                  <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
+                  <strong>â‚¹ {totalPremium.toLocaleString("en-IN")}</strong>
                 </div>
                 <div>
                   <span>GST (18%)</span>
                   <strong>
-                    ₹ {Math.round(totalPremium * 0.18).toLocaleString("en-IN")}
+                    â‚¹{" "}
+                    {Math.round(totalPremium * 0.18).toLocaleString("en-IN")}
                   </strong>
                 </div>
                 <div>
                   <span>Total</span>
                   <strong>
-                    ₹ {Math.round(totalPremium * 1.18).toLocaleString("en-IN")}
+                    â‚¹{" "}
+                    {Math.round(totalPremium * 1.18).toLocaleString("en-IN")}
                   </strong>
                 </div>
               </div>
@@ -666,7 +724,7 @@ export function CreatePolicyForm({
 
           <div className="action-row">
             <button className="ghost-button" type="button" onClick={goBack}>
-              ← Back
+              â† Back
             </button>
             <button
               className="primary-button"
@@ -683,7 +741,7 @@ export function CreatePolicyForm({
   );
 }
 
-/* ─── traveller card sub-component ─── */
+/* â”€â”€â”€ traveller card sub-component â”€â”€â”€ */
 
 function TravellerCard({
   traveller: t,
@@ -781,7 +839,7 @@ function TravellerCard({
             <span>Age</span>
             <input
               type="text"
-              value={age != null ? `${age} years` : "—"}
+              value={age != null ? `${age} years` : "â€”"}
               readOnly
               className="input-readonly"
             />
@@ -850,10 +908,17 @@ function TravellerCard({
           </label>
           <label>
             <span>Country *</span>
-            <input
+            <select
               value={t.country}
               onChange={(e) => onUpdate("country", e.target.value)}
-            />
+            >
+              <option value="">Select country</option>
+              {ALL_COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
       </div>
@@ -970,7 +1035,8 @@ function TravellerCard({
               <option value="">Select plan</option>
               {plans.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — ₹ {Number(p.premiumAmount).toLocaleString("en-IN")}
+                  {p.name} â€” â‚¹{" "}
+                  {Number(p.premiumAmount).toLocaleString("en-IN")}
                 </option>
               ))}
             </select>
@@ -981,8 +1047,8 @@ function TravellerCard({
               type="text"
               value={
                 t.premiumAmount > 0
-                  ? `₹ ${t.premiumAmount.toLocaleString("en-IN")}`
-                  : "—"
+                  ? `â‚¹ ${t.premiumAmount.toLocaleString("en-IN")}`
+                  : "â€”"
               }
               readOnly
               className="input-readonly"

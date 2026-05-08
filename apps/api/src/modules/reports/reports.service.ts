@@ -51,6 +51,7 @@ export class ReportsService {
       readyInvoices,
       sentInvoices,
       pendingPdfPolicies,
+      uninvoicedPolicies,
       emailSendsToday,
       recentPolicies,
       recentActions,
@@ -72,6 +73,12 @@ export class ReportsService {
           documents: {
             none: { sourceType: "GENERATED_PDF" },
           },
+        },
+      }),
+      this.prisma.policy.count({
+        where: {
+          ...policyScope,
+          invoiceLinks: { none: {} },
         },
       }),
       this.prisma.emailLog.count({
@@ -120,6 +127,7 @@ export class ReportsService {
         readyInvoices,
         sentInvoices,
         pendingPdfPolicies,
+        uninvoicedPolicies,
         emailSendsToday,
       },
       topPartner: topPartnerRecord

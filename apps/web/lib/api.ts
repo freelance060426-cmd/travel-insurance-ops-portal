@@ -171,6 +171,7 @@ export type ApiDashboardReport = {
     readyInvoices: number;
     sentInvoices: number;
     pendingPdfPolicies: number;
+    uninvoicedPolicies: number;
     emailSendsToday: number;
   };
   topPartner: {
