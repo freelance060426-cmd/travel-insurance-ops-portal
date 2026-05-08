@@ -16,7 +16,7 @@ import {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/* â”€â”€â”€ types â”€â”€â”€ */
+/* ─── types ─── */
 
 type TravellerDraft = {
   _key: string;
@@ -55,7 +55,7 @@ type TripDraft = {
   endDate: string;
 };
 
-/* â”€â”€â”€ helpers â”€â”€â”€ */
+/* ─── helpers ─── */
 
 function computeDays(start: string, end: string) {
   if (!start || !end) return 0;
@@ -101,7 +101,7 @@ function freshTraveller(): TravellerDraft {
   };
 }
 
-/* â”€â”€â”€ component â”€â”€â”€ */
+/* ─── component ─── */
 
 export function CreatePolicyForm({
   initialPartners,
@@ -402,7 +402,7 @@ export function CreatePolicyForm({
     },
     {
       label: "Review & Confirm",
-      detail: `â‚¹ ${totalPremium.toLocaleString("en-IN")}`,
+      detail: `₹ ${totalPremium.toLocaleString("en-IN")}`,
     },
   ];
 
@@ -427,7 +427,7 @@ export function CreatePolicyForm({
           </div>
           <div>
             <span>Premium</span>
-            <strong>â‚¹ {totalPremium.toLocaleString("en-IN")}</strong>
+            <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
           </div>
         </div>
       </section>
@@ -555,7 +555,7 @@ export function CreatePolicyForm({
                 type="number"
                 min="1"
                 value={tripDays > 0 ? tripDays : ""}
-                placeholder="â€”"
+                placeholder="—"
                 onChange={(e) => {
                   const days = parseInt(e.target.value, 10);
                   if (days > 0) updateTripDays(days);
@@ -567,7 +567,7 @@ export function CreatePolicyForm({
           <div className="action-row">
             <span />
             <button className="primary-button" type="button" onClick={goNext}>
-              Next â†’ Traveller Details
+              Next → Traveller Details
             </button>
           </div>
         </section>
@@ -611,10 +611,10 @@ export function CreatePolicyForm({
 
           <div className="action-row">
             <button className="ghost-button" type="button" onClick={goBack}>
-              â† Back
+              ← Back
             </button>
             <button className="primary-button" type="button" onClick={goNext}>
-              Next â†’ Review & Confirm
+              Next → Review & Confirm
             </button>
           </div>
         </section>
@@ -635,18 +635,18 @@ export function CreatePolicyForm({
               <div className="summary-pairs">
                 <div>
                   <span>Partner</span>
-                  <strong>{selectedPartner?.name ?? "â€”"}</strong>
+                  <strong>{selectedPartner?.name ?? "—"}</strong>
                 </div>
                 <div>
                   <span>Region</span>
-                  <strong>{trip.travelRegion || "â€”"}</strong>
+                  <strong>{trip.travelRegion || "—"}</strong>
                 </div>
                 <div>
                   <span>Destination</span>
                   <strong>
                     {trip.destination.length > 0
                       ? trip.destination.join(", ")
-                      : "â€”"}
+                      : "—"}
                   </strong>
                 </div>
                 <div>
@@ -683,12 +683,12 @@ export function CreatePolicyForm({
                       return (
                         <tr key={t._key}>
                           <td>{i + 1}</td>
-                          <td>{t.travellerName || "â€”"}</td>
-                          <td>{t.passportNumber || "â€”"}</td>
-                          <td>{t.gender || "â€”"}</td>
-                          <td>{t.dateOfBirth || "â€”"}</td>
-                          <td>{plan?.name || "â€”"}</td>
-                          <td>â‚¹ {t.premiumAmount.toLocaleString("en-IN")}</td>
+                          <td>{t.travellerName || "—"}</td>
+                          <td>{t.passportNumber || "—"}</td>
+                          <td>{t.gender || "—"}</td>
+                          <td>{t.dateOfBirth || "—"}</td>
+                          <td>{plan?.name || "—"}</td>
+                          <td>₹ {t.premiumAmount.toLocaleString("en-IN")}</td>
                         </tr>
                       );
                     })}
@@ -702,20 +702,18 @@ export function CreatePolicyForm({
               <div className="summary-pairs">
                 <div>
                   <span>Subtotal</span>
-                  <strong>â‚¹ {totalPremium.toLocaleString("en-IN")}</strong>
+                  <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
                 </div>
                 <div>
                   <span>GST (18%)</span>
                   <strong>
-                    â‚¹{" "}
-                    {Math.round(totalPremium * 0.18).toLocaleString("en-IN")}
+                    ₹ {Math.round(totalPremium * 0.18).toLocaleString("en-IN")}
                   </strong>
                 </div>
                 <div>
                   <span>Total</span>
                   <strong>
-                    â‚¹{" "}
-                    {Math.round(totalPremium * 1.18).toLocaleString("en-IN")}
+                    ₹ {Math.round(totalPremium * 1.18).toLocaleString("en-IN")}
                   </strong>
                 </div>
               </div>
@@ -724,7 +722,7 @@ export function CreatePolicyForm({
 
           <div className="action-row">
             <button className="ghost-button" type="button" onClick={goBack}>
-              â† Back
+              ← Back
             </button>
             <button
               className="primary-button"
@@ -741,7 +739,7 @@ export function CreatePolicyForm({
   );
 }
 
-/* â”€â”€â”€ traveller card sub-component â”€â”€â”€ */
+/* ─── traveller card sub-component ─── */
 
 function TravellerCard({
   traveller: t,
@@ -839,7 +837,7 @@ function TravellerCard({
             <span>Age</span>
             <input
               type="text"
-              value={age != null ? `${age} years` : "â€”"}
+              value={age != null ? `${age} years` : "—"}
               readOnly
               className="input-readonly"
             />
@@ -1035,8 +1033,7 @@ function TravellerCard({
               <option value="">Select plan</option>
               {plans.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} â€” â‚¹{" "}
-                  {Number(p.premiumAmount).toLocaleString("en-IN")}
+                  {p.name} — ₹ {Number(p.premiumAmount).toLocaleString("en-IN")}
                 </option>
               ))}
             </select>
@@ -1047,8 +1044,8 @@ function TravellerCard({
               type="text"
               value={
                 t.premiumAmount > 0
-                  ? `â‚¹ ${t.premiumAmount.toLocaleString("en-IN")}`
-                  : "â€”"
+                  ? `₹ ${t.premiumAmount.toLocaleString("en-IN")}`
+                  : "—"
               }
               readOnly
               className="input-readonly"
