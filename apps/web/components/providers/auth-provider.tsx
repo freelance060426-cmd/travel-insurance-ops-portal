@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { fetchCurrentUser, login } from "@/lib/api";
 import type { AuthUser } from "@/lib/api";
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from "@/lib/auth-store";
@@ -68,6 +62,7 @@ export function AuthProvider({
       .catch(() => {
         window.localStorage.removeItem(AUTH_TOKEN_KEY);
         window.localStorage.removeItem(AUTH_USER_KEY);
+        document.cookie = `${AUTH_TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
         setToken(null);
         setUser(null);
       })
