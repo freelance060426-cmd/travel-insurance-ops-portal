@@ -95,6 +95,7 @@ export function MultiSelect({
               autoFocus
             />
           </div>
+
           <ul className="multi-select__list">
             {filtered.length === 0 && (
               <li className="multi-select__empty">No results</li>
