@@ -1,59 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { endorsePolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
-
-/* ─── constants ─── */
-
-const TRAVEL_REGIONS = ["Asia", "Europe", "Americas", "Worldwide"];
-
-const NOMINEE_RELATIONSHIPS = [
-  "Father",
-  "Mother",
-  "Spouse",
-  "Brother",
-  "Sister",
-  "Son",
-  "Daughter",
-  "Uncle",
-  "Aunty",
-  "Cousin",
-  "Friend",
-  "Others",
-];
-
-/* ─── types ─── */
-
-type EndorseTravellerDraft = {
-  id: string;
-  name: string;
-  passport: string;
-  gender: string;
-  dateOfBirth: string;
-  nominee: string;
-  nomineeRelationship: string;
-  address: string;
-  pincode: string;
-  city: string;
-  district: string;
-  state: string;
-  country: string;
-  email: string;
-  mobile: string;
-  plan: string;
-  premium: string;
-  remarks: string;
-  pastIllness: string;
-  crReferenceNumber: string;
-  emergencyContactPerson: string;
-  emergencyContactNumber: string;
-  emergencyEmail: string;
-  gstNumber: string;
-  gstState: string;
-};
+import { TRAVEL_REGIONS, REGION_COUNTRIES } from "@/lib/travel-constants";
+import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  TravellerCard,
+  type TravellerDraft,
+  type TravellerFieldErrors,
+} from "@/components/forms/traveller-card";
 
 type EndorsePolicyViewModel = {
   id: string;
@@ -95,6 +53,38 @@ type EndorsePolicyViewModel = {
 
 /* ─── helpers ─── */
 
+type TravellerErrorMap = Record<string, TravellerFieldErrors>;
+
+const ENDORSE_REQUIRED: Array<[keyof TravellerDraft, string]> = [
+  ["passportNumber", "Passport number is required"],
+  ["travellerName", "Name is required"],
+  ["gender", "Gender is required"],
+  ["dateOfBirth", "Date of birth is required"],
+  ["address", "Address is required"],
+  ["pincode", "Pincode is required"],
+  ["city", "City is required"],
+  ["district", "District is required"],
+  ["state", "State is required"],
+  ["country", "Country is required"],
+  ["nominee", "Nominee name is required"],
+  ["nomineeRelationship", "Nominee relationship is required"],
+];
+
+function validateEndorseTravellers(
+  travellers: TravellerDraft[],
+): TravellerErrorMap {
+  const map: TravellerErrorMap = {};
+  for (const t of travellers) {
+    const fieldErrors: TravellerFieldErrors = {};
+    for (const [field, msg] of ENDORSE_REQUIRED) {
+      const val = t[field];
+      if (typeof val === "string" && !val.trim()) fieldErrors[field] = msg;
+    }
+    if (Object.keys(fieldErrors).length > 0) map[t._key] = fieldErrors;
+  }
+  return map;
+}
+
 function computeDays(start: string, end: string) {
   if (!start || !end) return 0;
   const ms = new Date(end).getTime() - new Date(start).getTime();
@@ -106,6 +96,25 @@ function computeAge(dob: string) {
   const birth = new Date(dob);
   const diff = Date.now() - birth.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+}
+
+async function lookupPincode(pin: string) {
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+    const data = await res.json();
+    if (data?.[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
+      const po = data[0].PostOffice[0];
+      return {
+        city: po.Block || po.Name || "",
+        district: po.District || "",
+        state: po.State || "",
+        country: "India",
+      };
+    }
+  } catch {
+    // ignore network errors
+  }
+  return null;
 }
 
 /* ─── component ─── */
@@ -121,16 +130,21 @@ export function EndorsePolicyForm({
   const [startDate, setStartDate] = useState(policy.startDate);
   const [endDate, setEndDate] = useState(policy.endDate);
   const [travelRegion, setTravelRegion] = useState(policy.travelRegion);
-  const [destination, setDestination] = useState(policy.destination);
+  const [destination, setDestination] = useState<string[]>(
+    policy.destination ? policy.destination.split(", ").filter(Boolean) : [],
+  );
+  const availableCountries = travelRegion
+    ? (REGION_COUNTRIES[travelRegion] ?? [])
+    : [];
   const [reason, setReason] = useState(
     "Traveller correction and travel date update",
   );
 
-  const [travellers, setTravellers] = useState<EndorseTravellerDraft[]>(
+  const [travellers, setTravellers] = useState<TravellerDraft[]>(
     policy.travellers.map((t, index) => ({
-      id: `${policy.id}-${index}`,
-      name: t.name,
-      passport: t.passport,
+      _key: `${policy.id}-${index}`,
+      travellerName: t.name,
+      passportNumber: t.passport,
       gender: t.gender,
       dateOfBirth: t.dateOfBirth,
       nominee: t.nominee,
@@ -140,11 +154,11 @@ export function EndorsePolicyForm({
       city: t.city,
       district: t.district,
       state: t.state,
-      country: t.country,
+      country: t.country || "India",
       email: t.email,
       mobile: t.mobile,
-      plan: t.plan,
-      premium: t.premium,
+      planId: t.plan,
+      premiumAmount: Number(String(t.premium).replace(/[^\d.]/g, "")) || 0,
       remarks: t.remarks,
       pastIllness: t.pastIllness,
       crReferenceNumber: t.crReferenceNumber,
@@ -153,31 +167,117 @@ export function EndorsePolicyForm({
       emergencyEmail: t.emergencyEmail,
       gstNumber: t.gstNumber,
       gstState: t.gstState,
+      lookupStatus: "idle" as const,
+      pincodeStatus: "idle" as const,
+      sameAddressAsTraveller1: false,
+      samePlanAsTraveller1: false,
     })),
   );
 
   const [pending, setPending] = useState(false);
+  const [travellerErrors, setTravellerErrors] = useState<TravellerErrorMap>({});
+  const [tripErrors, setTripErrors] = useState<{
+    travelRegion?: string;
+    destination?: string;
+    startDate?: string;
+    endDate?: string;
+    reason?: string;
+  }>({});
 
   const tripDays = computeDays(startDate, endDate);
 
-  const changeSummary = useMemo(() => {
-    return [
-      `Travel window: ${policy.startDate} → ${startDate}, ${policy.endDate} → ${endDate}`,
-      `Traveller rows ready for endorsement save: ${travellers.length}`,
-    ];
-  }, [endDate, policy.endDate, policy.startDate, startDate, travellers.length]);
+  function updateTripDays(days: number) {
+    if (!startDate || days <= 0) return;
+    const start = new Date(startDate);
+    start.setDate(start.getDate() + days);
+    const newEnd = start.toISOString().slice(0, 10);
+    setEndDate(newEnd);
+    if (tripErrors.endDate)
+      setTripErrors((p) => ({ ...p, endDate: undefined }));
+  }
+
+  function validateTrip() {
+    const errs: typeof tripErrors = {};
+    if (!travelRegion) errs.travelRegion = "Travel region is required";
+    if (travelRegion && destination.length === 0)
+      errs.destination = "At least one destination is required";
+    if (!startDate) errs.startDate = "Start date is required";
+    if (!endDate) {
+      errs.endDate = "End date is required";
+    } else if (startDate && endDate <= startDate) {
+      errs.endDate = "End date must be after start date";
+    }
+    if (!reason.trim()) errs.reason = "Endorsement reason is required";
+    setTripErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
 
   function updateTraveller(
-    id: string,
-    field: keyof EndorseTravellerDraft,
+    key: string,
+    field: keyof TravellerDraft,
     value: string,
   ) {
     setTravellers((current) =>
-      current.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
+      current.map((t) => (t._key === key ? { ...t, [field]: value } : t)),
     );
+    setTravellerErrors((prev) => {
+      if (!prev[key]?.[field]) return prev;
+      const updated = { ...prev[key] };
+      delete updated[field];
+      return Object.keys(updated).length === 0
+        ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key))
+        : { ...prev, [key]: updated };
+    });
+  }
+
+  async function handlePincodeLookup(key: string, pin: string) {
+    if (!pin || pin.length !== 6) return;
+    setTravellers((curr) =>
+      curr.map((t) =>
+        t._key === key ? { ...t, pincodeStatus: "loading" as const } : t,
+      ),
+    );
+    const result = await lookupPincode(pin);
+    if (result) {
+      setTravellers((curr) =>
+        curr.map((t) =>
+          t._key === key
+            ? { ...t, ...result, pincodeStatus: "done" as const }
+            : t,
+        ),
+      );
+    } else {
+      setTravellers((curr) =>
+        curr.map((t) =>
+          t._key === key ? { ...t, pincodeStatus: "not-found" as const } : t,
+        ),
+      );
+    }
   }
 
   async function handleSaveEndorsement() {
+    const tripOk = validateTrip();
+    const travellerErrorMap = validateEndorseTravellers(travellers);
+    const travellerOk = Object.keys(travellerErrorMap).length === 0;
+
+    if (!tripOk || !travellerOk) {
+      setTravellerErrors(travellerErrorMap);
+      if (!tripOk && !travellerOk) {
+        toast.error(
+          "Please fix the trip details and required traveller fields.",
+        );
+      } else if (!tripOk) {
+        toast.error("Please fix the trip details above.");
+      } else {
+        toast.error("Please fill in all required traveller fields.");
+        document
+          .querySelector(
+            `[data-traveller-key="${Object.keys(travellerErrorMap)[0]}"]`,
+          )
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return;
+    }
     setPending(true);
     const toastId = toast.loading("Saving endorsement...");
 
@@ -189,10 +289,11 @@ export function EndorsePolicyForm({
           endDate,
           reason,
           travelRegion: travelRegion || undefined,
-          destination: destination || undefined,
+          destination:
+            destination.length > 0 ? destination.join(", ") : undefined,
           travellers: travellers.map((t) => ({
-            travellerName: t.name,
-            passportNumber: t.passport,
+            travellerName: t.travellerName,
+            passportNumber: t.passportNumber,
             gender: t.gender || undefined,
             dateOfBirth: t.dateOfBirth || undefined,
             age: computeAge(t.dateOfBirth) ?? undefined,
@@ -206,8 +307,8 @@ export function EndorsePolicyForm({
             country: t.country || undefined,
             email: t.email || undefined,
             mobile: t.mobile || undefined,
-            planName: t.plan || undefined,
-            premiumAmount: Number(t.premium.replace(/[^\d.]/g, "")) || 0,
+            planName: t.planId || undefined,
+            premiumAmount: t.premiumAmount || 0,
             remarks: t.remarks || undefined,
             pastIllness: t.pastIllness || undefined,
             crReferenceNumber: t.crReferenceNumber || undefined,
@@ -251,425 +352,166 @@ export function EndorsePolicyForm({
         </div>
       </section>
 
-      {/* ─── Trip / Header ─── */}
-      <div className="form-layout">
-        <section className="content-card">
-          <div className="section-heading">
-            <div>
-              <p className="portal-eyebrow">TRIP &amp; POLICY HEADER</p>
-              <h3>Policy updates</h3>
-            </div>
+      {/* ─── Main content card ─── */}
+      <section className="content-card">
+        {/* Trip / Header */}
+        <div className="section-heading">
+          <div>
+            <p className="portal-eyebrow">TRIP &amp; POLICY HEADER</p>
+            <h3>Policy updates</h3>
           </div>
+        </div>
 
-          <div className="form-grid form-grid--policy-header">
-            <label>
-              <span>Travel Region</span>
-              <select
-                value={travelRegion}
-                onChange={(e) => setTravelRegion(e.target.value)}
-              >
-                <option value="">Select region</option>
-                {TRAVEL_REGIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Destination</span>
-              <input
-                value={destination}
-                placeholder="Country name(s)"
-                onChange={(e) => setDestination(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>Issue Date</span>
-              <input type="date" value={policy.issueDate} readOnly />
-            </label>
-            <label>
-              <span>Travel Start</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>Travel End</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>Trip Days</span>
-              <input
-                type="text"
-                value={tripDays > 0 ? `${tripDays} days` : "—"}
-                readOnly
-                className="input-readonly"
-              />
-            </label>
-            <label>
-              <span>Endorsement reason</span>
-              <input
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
-          </div>
-        </section>
+        <div className="form-grid form-grid--policy-header">
+          <label className={tripErrors.travelRegion ? "has-error" : ""}>
+            <span>Travel Region *</span>
+            <select
+              value={travelRegion}
+              className={tripErrors.travelRegion ? "input-invalid" : ""}
+              onChange={(e) => {
+                setTravelRegion(e.target.value);
+                setDestination([]);
+                if (tripErrors.travelRegion)
+                  setTripErrors((p) => ({
+                    ...p,
+                    travelRegion: undefined,
+                    destination: undefined,
+                  }));
+              }}
+            >
+              <option value="">Select region</option>
+              {TRAVEL_REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+            {tripErrors.travelRegion && (
+              <p className="field-error">{tripErrors.travelRegion}</p>
+            )}
+          </label>
+          <label className={tripErrors.destination ? "has-error" : ""}>
+            <span>
+              Destination *
+              {destination.length > 0 ? ` (${destination.length})` : ""}
+            </span>
+            <MultiSelect
+              options={availableCountries}
+              selected={destination}
+              onChange={(val) => {
+                setDestination(val);
+                if (tripErrors.destination)
+                  setTripErrors((p) => ({ ...p, destination: undefined }));
+              }}
+              placeholder="Select countries"
+              disabled={!travelRegion}
+              disabledMessage="Select a region first"
+            />
+            {tripErrors.destination && (
+              <p className="field-error">{tripErrors.destination}</p>
+            )}
+          </label>
+          <label>
+            <span>Issue Date</span>
+            <input type="date" value={policy.issueDate} readOnly />
+          </label>
+          <label className={tripErrors.startDate ? "has-error" : ""}>
+            <span>Travel Start *</span>
+            <input
+              type="date"
+              value={startDate}
+              className={tripErrors.startDate ? "input-invalid" : ""}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                if (tripErrors.startDate)
+                  setTripErrors((p) => ({ ...p, startDate: undefined }));
+              }}
+            />
+            {tripErrors.startDate && (
+              <p className="field-error">{tripErrors.startDate}</p>
+            )}
+          </label>
+          <label className={tripErrors.endDate ? "has-error" : ""}>
+            <span>Travel End *</span>
+            <input
+              type="date"
+              value={endDate}
+              className={tripErrors.endDate ? "input-invalid" : ""}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                if (tripErrors.endDate)
+                  setTripErrors((p) => ({ ...p, endDate: undefined }));
+              }}
+            />
+            {tripErrors.endDate && (
+              <p className="field-error">{tripErrors.endDate}</p>
+            )}
+          </label>
+          <label>
+            <span>Trip Days</span>
+            <input
+              type="number"
+              min="1"
+              value={tripDays > 0 ? tripDays : ""}
+              placeholder="—"
+              onChange={(e) => {
+                const days = parseInt(e.target.value, 10);
+                if (days > 0) updateTripDays(days);
+              }}
+            />
+          </label>
+          <label className={tripErrors.reason ? "has-error" : ""}>
+            <span>Endorsement reason *</span>
+            <input
+              value={reason}
+              className={tripErrors.reason ? "input-invalid" : ""}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (tripErrors.reason)
+                  setTripErrors((p) => ({ ...p, reason: undefined }));
+              }}
+            />
+            {tripErrors.reason && (
+              <p className="field-error">{tripErrors.reason}</p>
+            )}
+          </label>
+        </div>
 
-        <aside className="content-card summary-card">
-          <p className="portal-eyebrow">CHANGE SUMMARY</p>
-          <h3>What will be saved</h3>
-          <ul className="activity-list">
-            {changeSummary.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-          <div className="lookup-banner">
-            A before/after change record will be saved when the endorsement is
-            submitted.
-          </div>
-        </aside>
-      </div>
+        {/* Traveller cards */}
+        <div className="traveller-stack">
+          {travellers.map((t, index) => (
+            <TravellerCard
+              key={t._key}
+              traveller={t}
+              index={index}
+              mode="endorse"
+              fieldErrors={travellerErrors[t._key] ?? {}}
+              onUpdate={(field, value) =>
+                updateTraveller(t._key, field, String(value))
+              }
+              onPincodeBlur={() => handlePincodeLookup(t._key, t.pincode)}
+            />
+          ))}
+        </div>
 
-      {/* ─── Traveller cards ─── */}
-      {travellers.map((t, index) => {
-        const age = computeAge(t.dateOfBirth);
-        return (
-          <article key={t.id} className="traveller-entry-card">
-            <div className="traveller-entry-card__header">
-              <div className="traveller-title-row">
-                <span className="traveller-index-pill">{index + 1}</span>
-                <div>
-                  <p className="portal-eyebrow">TRAVELLER {index + 1}</p>
-                  <h4>{t.name || "Traveller"}</h4>
-                </div>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Identity</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Passport Number *</span>
-                  <input
-                    value={t.passport}
-                    onChange={(e) =>
-                      updateTraveller(
-                        t.id,
-                        "passport",
-                        e.target.value.toUpperCase(),
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Name *</span>
-                  <input
-                    value={t.name}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "name", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Gender *</span>
-                  <select
-                    value={t.gender}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "gender", e.target.value)
-                    }
-                  >
-                    <option value="">Select</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Date of Birth *</span>
-                  <input
-                    type="date"
-                    value={t.dateOfBirth}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "dateOfBirth", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Age</span>
-                  <input
-                    type="text"
-                    value={age != null ? `${age} years` : "—"}
-                    readOnly
-                    className="input-readonly"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Contact</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Email *</span>
-                  <input
-                    type="email"
-                    value={t.email}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "email", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Mobile *</span>
-                  <input
-                    value={t.mobile}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "mobile", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Address</h5>
-              <div className="traveller-card-grid">
-                <label className="span-full">
-                  <span>Address *</span>
-                  <input
-                    value={t.address}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "address", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Pincode *</span>
-                  <input
-                    value={t.pincode}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "pincode", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>City *</span>
-                  <input
-                    value={t.city}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "city", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>District *</span>
-                  <input
-                    value={t.district}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "district", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>State *</span>
-                  <input
-                    value={t.state}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "state", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Country *</span>
-                  <input
-                    value={t.country}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "country", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Nominee</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Nominee Name *</span>
-                  <input
-                    value={t.nominee}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "nominee", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Relationship *</span>
-                  <select
-                    value={t.nomineeRelationship}
-                    onChange={(e) =>
-                      updateTraveller(
-                        t.id,
-                        "nomineeRelationship",
-                        e.target.value,
-                      )
-                    }
-                  >
-                    <option value="">Select</option>
-                    {NOMINEE_RELATIONSHIPS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Emergency Contact</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Contact Person</span>
-                  <input
-                    value={t.emergencyContactPerson}
-                    onChange={(e) =>
-                      updateTraveller(
-                        t.id,
-                        "emergencyContactPerson",
-                        e.target.value,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Contact Number</span>
-                  <input
-                    value={t.emergencyContactNumber}
-                    onChange={(e) =>
-                      updateTraveller(
-                        t.id,
-                        "emergencyContactNumber",
-                        e.target.value,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Contact Email</span>
-                  <input
-                    type="email"
-                    value={t.emergencyEmail}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "emergencyEmail", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Other Details</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Past Illness</span>
-                  <input
-                    value={t.pastIllness}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "pastIllness", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Remarks</span>
-                  <input
-                    value={t.remarks}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "remarks", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>CR Reference Number</span>
-                  <input
-                    value={t.crReferenceNumber}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "crReferenceNumber", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>GST Number</span>
-                  <input
-                    value={t.gstNumber}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "gstNumber", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>GST State</span>
-                  <input
-                    value={t.gstState}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "gstState", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="wizard-field-group">
-              <h5 className="wizard-field-group__label">Plan &amp; Premium</h5>
-              <div className="traveller-card-grid">
-                <label>
-                  <span>Plan</span>
-                  <input
-                    value={t.plan}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "plan", e.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  <span>Premium</span>
-                  <input
-                    value={t.premium}
-                    onChange={(e) =>
-                      updateTraveller(t.id, "premium", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-          </article>
-        );
-      })}
-
-      <div className="action-row">
-        <button
-          className="ghost-button"
-          type="button"
-          onClick={() => router.push(`/policies/${policy.id}`)}
-        >
-          Back to detail
-        </button>
-        <button
-          className="primary-button"
-          type="button"
-          onClick={handleSaveEndorsement}
-          disabled={pending}
-        >
-          {pending ? "Saving..." : "Save endorsement draft"}
-        </button>
-      </div>
+        <div className="action-row">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => router.push(`/policies/${policy.id}`)}
+          >
+            Back to detail
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={handleSaveEndorsement}
+            disabled={pending}
+          >
+            {pending ? "Saving..." : "Save endorsement draft"}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

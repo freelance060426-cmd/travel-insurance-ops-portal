@@ -12,21 +12,10 @@ import {
   type ApiEligibleInvoicePolicy,
   type ApiInvoice,
 } from "@/lib/api";
+import { formatDDMMYYYY, calcTripDays } from "@/lib/format";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
-}
-
-function formatTravelWindow(startDate: string, endDate: string) {
-  const start = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(startDate));
-  const end = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(endDate));
-  return `${start} - ${end}`;
 }
 
 function statusLabel(value: string) {
@@ -372,7 +361,9 @@ export function InvoiceManagementWorkspace({
                       <th>Policy No.</th>
                       <th>Traveller</th>
                       <th>Partner</th>
-                      <th>Travel</th>
+                      <th>Start Date</th>
+                      <th>End Date</th>
+                      <th>Days</th>
                       <th>Premium</th>
                     </tr>
                   </thead>
@@ -396,11 +387,10 @@ export function InvoiceManagementWorkspace({
                           <td>{policy.policyNumber}</td>
                           <td>{policy.primaryTravellerName}</td>
                           <td>{policy.partner.name}</td>
+                          <td>{formatDDMMYYYY(policy.startDate)}</td>
+                          <td>{formatDDMMYYYY(policy.endDate)}</td>
                           <td>
-                            {formatTravelWindow(
-                              policy.startDate,
-                              policy.endDate,
-                            )}
+                            {calcTripDays(policy.startDate, policy.endDate)}
                           </td>
                           <td>
                             ₹{" "}

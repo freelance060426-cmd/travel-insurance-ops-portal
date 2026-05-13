@@ -1,59 +1,23 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ApiPartner, ApiPlan } from "@/lib/api";
 import { checkPassport, createPolicy } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { REGION_COUNTRIES, TRAVEL_REGIONS } from "@/lib/travel-constants";
+import { tripSchema, type TripFormValues } from "@/lib/schemas";
 import {
-  ALL_COUNTRIES,
-  NOMINEE_RELATIONSHIPS,
-  REGION_COUNTRIES,
-  TRAVEL_REGIONS,
-} from "@/lib/travel-constants";
+  TravellerCard,
+  type TravellerDraft,
+  type TravellerFieldErrors,
+} from "@/components/forms/traveller-card";
 
 const today = () => new Date().toISOString().slice(0, 10);
-
-/* ─── types ─── */
-
-type TravellerDraft = {
-  _key: string;
-  passportNumber: string;
-  travellerName: string;
-  gender: string;
-  dateOfBirth: string;
-  nominee: string;
-  nomineeRelationship: string;
-  address: string;
-  pincode: string;
-  city: string;
-  district: string;
-  state: string;
-  country: string;
-  email: string;
-  mobile: string;
-  remarks: string;
-  crReferenceNumber: string;
-  pastIllness: string;
-  emergencyContactPerson: string;
-  emergencyContactNumber: string;
-  emergencyEmail: string;
-  gstNumber: string;
-  gstState: string;
-  planId: string;
-  premiumAmount: number;
-  lookupStatus: "idle" | "checking" | "found" | "not-found";
-};
-
-type TripDraft = {
-  travelRegion: string;
-  destination: string[];
-  partnerId: string;
-  startDate: string;
-  endDate: string;
-};
 
 /* ─── helpers ─── */
 
@@ -98,10 +62,45 @@ function freshTraveller(): TravellerDraft {
     planId: "",
     premiumAmount: 0,
     lookupStatus: "idle",
+    pincodeStatus: "idle",
+    sameAddressAsTraveller1: false,
+    samePlanAsTraveller1: false,
   };
 }
 
 /* ─── component ─── */
+
+type TravellerErrorMap = Record<string, TravellerFieldErrors>; // keyed by _key
+
+const TRAVELLER_REQUIRED: Array<[keyof TravellerDraft, string]> = [
+  ["passportNumber", "Passport number is required"],
+  ["travellerName", "Name is required"],
+  ["gender", "Gender is required"],
+  ["dateOfBirth", "Date of birth is required"],
+  ["address", "Address is required"],
+  ["pincode", "Pincode is required"],
+  ["city", "City is required"],
+  ["district", "District is required"],
+  ["state", "State is required"],
+  ["country", "Country is required"],
+  ["nominee", "Nominee name is required"],
+  ["nomineeRelationship", "Nominee relationship is required"],
+];
+
+function validateTravellers(travellers: TravellerDraft[]): TravellerErrorMap {
+  const map: TravellerErrorMap = {};
+  for (const t of travellers) {
+    const fieldErrors: TravellerFieldErrors = {};
+    for (const [field, msg] of TRAVELLER_REQUIRED) {
+      const val = t[field];
+      if (typeof val === "string" && !val.trim()) {
+        fieldErrors[field] = msg;
+      }
+    }
+    if (Object.keys(fieldErrors).length > 0) map[t._key] = fieldErrors;
+  }
+  return map;
+}
 
 export function CreatePolicyForm({
   initialPartners,
@@ -121,33 +120,50 @@ export function CreatePolicyForm({
 
   const [step, setStep] = useState(1);
 
-  const [trip, setTrip] = useState<TripDraft>({
-    travelRegion: "",
-    destination: [],
-    partnerId:
-      isPartnerUser && userPartnerId
-        ? userPartnerId
-        : (initialPartners[0]?.id ?? ""),
-    startDate: today(),
-    endDate: "",
+  const defaultPartnerId =
+    isPartnerUser && userPartnerId
+      ? userPartnerId
+      : (initialPartners[0]?.id ?? "");
+
+  const {
+    register: registerTrip,
+    handleSubmit: handleTripSubmit,
+    watch: watchTrip,
+    setValue: setTripValue,
+    formState: { errors: tripErrors },
+  } = useForm<TripFormValues>({
+    mode: "onChange",
+    resolver: zodResolver(tripSchema),
+    defaultValues: {
+      travelRegion: "",
+      destination: [],
+      partnerId: defaultPartnerId,
+      startDate: today(),
+      endDate: "",
+    },
   });
+
+  const tripValues = watchTrip();
 
   const [travellers, setTravellers] = useState<TravellerDraft[]>([
     freshTraveller(),
   ]);
+  const [travellerErrors, setTravellerErrors] = useState<TravellerErrorMap>({});
 
   const [pending, setPending] = useState(false);
 
-  const tripDays = computeDays(trip.startDate, trip.endDate);
-  const selectedPartner = initialPartners.find((p) => p.id === trip.partnerId);
+  const tripDays = computeDays(tripValues.startDate, tripValues.endDate);
+  const selectedPartner = initialPartners.find(
+    (p) => p.id === tripValues.partnerId,
+  );
 
   const applicablePlans = useMemo(
     () =>
       initialPlans.filter((plan) => {
         if (
-          trip.travelRegion &&
+          tripValues.travelRegion &&
           plan.region &&
-          plan.region !== trip.travelRegion
+          plan.region !== tripValues.travelRegion
         )
           return false;
         if (tripDays > 0) {
@@ -156,7 +172,7 @@ export function CreatePolicyForm({
         }
         return true;
       }),
-    [initialPlans, trip.travelRegion, tripDays],
+    [initialPlans, tripValues.travelRegion, tripDays],
   );
 
   const totalPremium = useMemo(
@@ -164,42 +180,65 @@ export function CreatePolicyForm({
     [travellers],
   );
 
-  function updateTrip<K extends keyof TripDraft>(key: K, value: TripDraft[K]) {
-    setTrip((c) => {
-      const next = { ...c, [key]: value };
-      if (key === "travelRegion") next.destination = [];
-      return next;
-    });
-  }
-
   function updateTripDays(days: number) {
-    if (!trip.startDate || days <= 0) return;
-    const start = new Date(trip.startDate);
+    if (!tripValues.startDate || days <= 0) return;
+    const start = new Date(tripValues.startDate);
     start.setDate(start.getDate() + days);
-    setTrip((c) => ({ ...c, endDate: start.toISOString().slice(0, 10) }));
+    setTripValue("endDate", start.toISOString().slice(0, 10), {
+      shouldValidate: true,
+    });
   }
 
   function toggleDestination(country: string) {
-    setTrip((c) => {
-      const selected = c.destination.includes(country)
-        ? c.destination.filter((d) => d !== country)
-        : [...c.destination, country];
-      return { ...c, destination: selected };
-    });
+    const current = tripValues.destination;
+    const next = current.includes(country)
+      ? current.filter((d) => d !== country)
+      : [...current, country];
+    setTripValue("destination", next, { shouldValidate: true });
   }
 
-  const availableCountries = trip.travelRegion
-    ? (REGION_COUNTRIES[trip.travelRegion] ?? [])
+  const availableCountries = tripValues.travelRegion
+    ? (REGION_COUNTRIES[tripValues.travelRegion] ?? [])
     : [];
+
+  const ADDRESS_FIELDS: Array<keyof TravellerDraft> = [
+    "address",
+    "pincode",
+    "city",
+    "district",
+    "state",
+    "country",
+  ];
 
   function updateTraveller(
     key: string,
     field: keyof TravellerDraft,
     value: string | number | boolean,
   ) {
-    setTravellers((c) =>
-      c.map((t) => (t._key === key ? { ...t, [field]: value } : t)),
-    );
+    setTravellers((c) => {
+      const isT1 = c[0]?._key === key;
+      return c.map((t) => {
+        if (t._key === key) return { ...t, [field]: value };
+        // Sync address fields to T1-linked travellers
+        if (
+          isT1 &&
+          t.sameAddressAsTraveller1 &&
+          ADDRESS_FIELDS.includes(field)
+        ) {
+          return { ...t, [field]: value };
+        }
+        return t;
+      });
+    });
+    // Clear the error for this field when user changes it
+    setTravellerErrors((prev) => {
+      if (!prev[key]?.[field]) return prev;
+      const updated = { ...prev[key] };
+      delete updated[field];
+      return Object.keys(updated).length === 0
+        ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key))
+        : { ...prev, [key]: updated };
+    });
   }
 
   function removeTraveller(key: string) {
@@ -214,17 +253,18 @@ export function CreatePolicyForm({
 
   function selectPlan(travellerKey: string, planId: string) {
     const plan = applicablePlans.find((p) => p.id === planId);
-    setTravellers((c) =>
-      c.map((t) =>
-        t._key === travellerKey
-          ? {
-              ...t,
-              planId,
-              premiumAmount: plan ? Number(plan.premiumAmount) : 0,
-            }
-          : t,
-      ),
-    );
+    const premium = plan ? Number(plan.premiumAmount) : 0;
+    setTravellers((c) => {
+      const isT1 = c[0]?._key === travellerKey;
+      return c.map((t) => {
+        if (t._key === travellerKey)
+          return { ...t, planId, premiumAmount: premium };
+        // Sync plan to T1-linked travellers
+        if (isT1 && t.samePlanAsTraveller1)
+          return { ...t, planId, premiumAmount: premium };
+        return t;
+      });
+    });
   }
 
   const doPassportLookup = useCallback(
@@ -287,8 +327,133 @@ export function CreatePolicyForm({
     [token],
   );
 
+  async function handlePincodeLookup(travellerKey: string, pin: string) {
+    const clean = pin.trim();
+    if (clean.length !== 6 || !/^\d{6}$/.test(clean)) return;
+    setTravellers((c) =>
+      c.map((t) =>
+        t._key === travellerKey
+          ? { ...t, pincodeStatus: "loading" as const }
+          : t,
+      ),
+    );
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${clean}`);
+      const data = await res.json();
+      if (data[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
+        const po = data[0].PostOffice[0];
+        const filled = {
+          city: po.Division ?? "",
+          district: po.District ?? "",
+          state: po.State ?? "",
+          country: po.Country === "India" ? "India" : (po.Country ?? ""),
+        };
+        setTravellers((c) => {
+          const isT1 = c[0]?._key === travellerKey;
+          return c.map((t) => {
+            if (t._key === travellerKey) {
+              return {
+                ...t,
+                pincodeStatus: "done" as const,
+                city: filled.city || t.city,
+                district: filled.district || t.district,
+                state: filled.state || t.state,
+                country: filled.country || t.country,
+              };
+            }
+            // Sync auto-filled address to T1-linked travellers
+            if (isT1 && t.sameAddressAsTraveller1) {
+              return {
+                ...t,
+                city: filled.city || t.city,
+                district: filled.district || t.district,
+                state: filled.state || t.state,
+                country: filled.country || t.country,
+              };
+            }
+            return t;
+          });
+        });
+        // Clear any field errors for auto-filled fields
+        setTravellerErrors((prev) => {
+          if (!prev[travellerKey]) return prev;
+          const updated = { ...prev[travellerKey] };
+          delete updated.city;
+          delete updated.district;
+          delete updated.state;
+          delete updated.country;
+          return Object.keys(updated).length === 0
+            ? Object.fromEntries(
+                Object.entries(prev).filter(([k]) => k !== travellerKey),
+              )
+            : { ...prev, [travellerKey]: updated };
+        });
+      } else {
+        setTravellers((c) =>
+          c.map((t) =>
+            t._key === travellerKey
+              ? { ...t, pincodeStatus: "not-found" as const }
+              : t,
+          ),
+        );
+      }
+    } catch {
+      setTravellers((c) =>
+        c.map((t) =>
+          t._key === travellerKey
+            ? { ...t, pincodeStatus: "not-found" as const }
+            : t,
+        ),
+      );
+    }
+  }
+
+  function handleSameAddress(travellerKey: string, checked: boolean) {
+    const t1 = travellers[0];
+    setTravellers((c) =>
+      c.map((t) =>
+        t._key === travellerKey
+          ? {
+              ...t,
+              sameAddressAsTraveller1: checked,
+              ...(checked && t1
+                ? {
+                    address: t1.address,
+                    pincode: t1.pincode,
+                    city: t1.city,
+                    district: t1.district,
+                    state: t1.state,
+                    country: t1.country,
+                  }
+                : {}),
+            }
+          : t,
+      ),
+    );
+  }
+
+  function handleSamePlan(travellerKey: string, checked: boolean) {
+    const t1 = travellers[0];
+    setTravellers((c) =>
+      c.map((t) =>
+        t._key === travellerKey
+          ? {
+              ...t,
+              samePlanAsTraveller1: checked,
+              ...(checked && t1
+                ? {
+                    planId: t1.planId,
+                    premiumAmount: t1.premiumAmount,
+                  }
+                : {}),
+            }
+          : t,
+      ),
+    );
+  }
+
   async function handleSave() {
-    if (!trip.partnerId && !isPartnerUser) {
+    if (!tripValues.partnerId && !isPartnerUser) {
       toast.error("Select a partner before saving.");
       return;
     }
@@ -303,14 +468,16 @@ export function CreatePolicyForm({
     try {
       const payload = {
         policyNumber: `IC${Date.now().toString().slice(-6)}`,
-        partnerId: trip.partnerId,
+        partnerId: tripValues.partnerId,
         issueDate: today(),
-        startDate: trip.startDate,
-        endDate: trip.endDate,
+        startDate: tripValues.startDate,
+        endDate: tripValues.endDate,
         insurerName: "Bajaj Allianz",
-        travelRegion: trip.travelRegion || undefined,
+        travelRegion: tripValues.travelRegion || undefined,
         destination:
-          trip.destination.length > 0 ? trip.destination.join(", ") : undefined,
+          tripValues.destination.length > 0
+            ? tripValues.destination.join(", ")
+            : undefined,
         tripDays: tripDays || undefined,
         primaryTravellerName:
           travellers[0]?.travellerName || "Primary traveller",
@@ -362,32 +529,31 @@ export function CreatePolicyForm({
     }
   }
 
-  function goNext() {
-    if (step === 1) {
-      if (!trip.travelRegion) {
-        toast.error("Select a travel region to continue.");
+  const goNext = handleTripSubmit(
+    // step 1 valid: advance
+    () => {
+      if (step === 1) {
+        setStep(2);
         return;
       }
-      if (trip.destination.length === 0) {
-        toast.error("Select at least one destination country.");
-        return;
-      }
-      if (!trip.partnerId && !isPartnerUser) {
-        toast.error("Select a partner to continue.");
-        return;
-      }
-      if (!trip.startDate || !trip.endDate) {
-        toast.error("Travel start and end dates are required.");
-        return;
-      }
+    },
+    // step 1 invalid: RHF shows inline errors, do nothing
+    () => {},
+  );
+
+  function goNextStep2() {
+    const errors = validateTravellers(travellers);
+    if (Object.keys(errors).length > 0) {
+      setTravellerErrors(errors);
+      // Scroll to first error
+      const firstBadKey = Object.keys(errors)[0];
+      document
+        .querySelector(`[data-traveller-key="${firstBadKey}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
-    if (step === 2) {
-      if (travellers.every((t) => !t.travellerName.trim())) {
-        toast.error("Enter at least one traveller name.");
-        return;
-      }
-    }
-    setStep((s) => Math.min(s + 1, 3));
+    setTravellerErrors({});
+    setStep(3);
   }
 
   function goBack() {
@@ -483,11 +649,17 @@ export function CreatePolicyForm({
           </div>
 
           <div className="form-grid form-grid--policy-header">
-            <label>
+            <label className={tripErrors.travelRegion ? "has-error" : ""}>
               <span>Travel Region</span>
               <select
-                value={trip.travelRegion}
-                onChange={(e) => updateTrip("travelRegion", e.target.value)}
+                {...registerTrip("travelRegion")}
+                className={tripErrors.travelRegion ? "input-invalid" : ""}
+                onChange={(e) => {
+                  setTripValue("travelRegion", e.target.value, {
+                    shouldValidate: true,
+                  });
+                  setTripValue("destination", [], { shouldValidate: true });
+                }}
               >
                 <option value="">Select Travel Region</option>
                 {TRAVEL_REGIONS.map((r) => (
@@ -496,31 +668,39 @@ export function CreatePolicyForm({
                   </option>
                 ))}
               </select>
+              {tripErrors.travelRegion && (
+                <p className="field-error">{tripErrors.travelRegion.message}</p>
+              )}
             </label>
-            <label>
+            <label className={tripErrors.destination ? "has-error" : ""}>
               <span>
                 Destination
-                {trip.destination.length > 0
-                  ? ` (${trip.destination.length})`
+                {tripValues.destination.length > 0
+                  ? ` (${tripValues.destination.length})`
                   : ""}
               </span>
               <MultiSelect
                 options={availableCountries}
-                selected={trip.destination}
+                selected={tripValues.destination}
                 onChange={(selected) =>
-                  setTrip((c) => ({ ...c, destination: selected }))
+                  setTripValue("destination", selected, {
+                    shouldValidate: true,
+                  })
                 }
                 placeholder="Select countries"
-                disabled={!trip.travelRegion}
+                disabled={!tripValues.travelRegion}
                 disabledMessage="Select a region first"
               />
+              {tripErrors.destination && (
+                <p className="field-error">{tripErrors.destination.message}</p>
+              )}
             </label>
             {!isPartnerUser && (
-              <label>
+              <label className={tripErrors.partnerId ? "has-error" : ""}>
                 <span>Partner *</span>
                 <select
-                  value={trip.partnerId}
-                  onChange={(e) => updateTrip("partnerId", e.target.value)}
+                  {...registerTrip("partnerId")}
+                  className={tripErrors.partnerId ? "input-invalid" : ""}
                 >
                   <option value="">Select partner</option>
                   {initialPartners
@@ -531,23 +711,32 @@ export function CreatePolicyForm({
                       </option>
                     ))}
                 </select>
+                {tripErrors.partnerId && (
+                  <p className="field-error">{tripErrors.partnerId.message}</p>
+                )}
               </label>
             )}
-            <label>
+            <label className={tripErrors.startDate ? "has-error" : ""}>
               <span>Travel Start *</span>
               <input
                 type="date"
-                value={trip.startDate}
-                onChange={(e) => updateTrip("startDate", e.target.value)}
+                {...registerTrip("startDate")}
+                className={tripErrors.startDate ? "input-invalid" : ""}
               />
+              {tripErrors.startDate && (
+                <p className="field-error">{tripErrors.startDate.message}</p>
+              )}
             </label>
-            <label>
+            <label className={tripErrors.endDate ? "has-error" : ""}>
               <span>Travel End *</span>
               <input
                 type="date"
-                value={trip.endDate}
-                onChange={(e) => updateTrip("endDate", e.target.value)}
+                {...registerTrip("endDate")}
+                className={tripErrors.endDate ? "input-invalid" : ""}
               />
+              {tripErrors.endDate && (
+                <p className="field-error">{tripErrors.endDate.message}</p>
+              )}
             </label>
             <label>
               <span>Trip Days</span>
@@ -580,13 +769,6 @@ export function CreatePolicyForm({
               <p className="portal-eyebrow">STEP 2</p>
               <h3>Traveller details</h3>
             </div>
-            <button
-              className="ghost-button"
-              type="button"
-              onClick={addTraveller}
-            >
-              + Add Traveller
-            </button>
           </div>
 
           <div className="traveller-stack">
@@ -597,6 +779,8 @@ export function CreatePolicyForm({
                 index={index}
                 plans={applicablePlans}
                 canRemove={travellers.length > 1}
+                fieldErrors={travellerErrors[t._key] ?? {}}
+                traveller1={index > 0 ? (travellers[0] ?? null) : null}
                 onUpdate={(field, value) =>
                   updateTraveller(t._key, field, value)
                 }
@@ -605,6 +789,9 @@ export function CreatePolicyForm({
                 onPassportBlur={() =>
                   doPassportLookup(t._key, t.passportNumber)
                 }
+                onPincodeBlur={() => handlePincodeLookup(t._key, t.pincode)}
+                onSameAddress={(checked) => handleSameAddress(t._key, checked)}
+                onSamePlan={(checked) => handleSamePlan(t._key, checked)}
               />
             ))}
           </div>
@@ -613,9 +800,22 @@ export function CreatePolicyForm({
             <button className="ghost-button" type="button" onClick={goBack}>
               ← Back
             </button>
-            <button className="primary-button" type="button" onClick={goNext}>
-              Next → Review & Confirm
-            </button>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={addTraveller}
+              >
+                + Add Traveller
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={goNextStep2}
+              >
+                Next → Review & Confirm
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -639,21 +839,35 @@ export function CreatePolicyForm({
                 </div>
                 <div>
                   <span>Region</span>
-                  <strong>{trip.travelRegion || "—"}</strong>
+                  <strong>{tripValues.travelRegion || "—"}</strong>
                 </div>
                 <div>
                   <span>Destination</span>
                   <strong>
-                    {trip.destination.length > 0
-                      ? trip.destination.join(", ")
+                    {tripValues.destination.length > 0
+                      ? tripValues.destination.join(", ")
                       : "—"}
                   </strong>
                 </div>
                 <div>
-                  <span>Travel window</span>
+                  <span>Start date</span>
                   <strong>
-                    {trip.startDate} to {trip.endDate} ({tripDays} days)
+                    {tripValues.startDate
+                      ? tripValues.startDate.split("-").reverse().join("-")
+                      : "—"}
                   </strong>
+                </div>
+                <div>
+                  <span>End date</span>
+                  <strong>
+                    {tripValues.endDate
+                      ? tripValues.endDate.split("-").reverse().join("-")
+                      : "—"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Trip days</span>
+                  <strong>{tripDays ?? "—"}</strong>
                 </div>
               </div>
             </div>
@@ -686,7 +900,11 @@ export function CreatePolicyForm({
                           <td>{t.travellerName || "—"}</td>
                           <td>{t.passportNumber || "—"}</td>
                           <td>{t.gender || "—"}</td>
-                          <td>{t.dateOfBirth || "—"}</td>
+                          <td>
+                            {t.dateOfBirth
+                              ? t.dateOfBirth.split("-").reverse().join("-")
+                              : "—"}
+                          </td>
                           <td>{plan?.name || "—"}</td>
                           <td>₹ {t.premiumAmount.toLocaleString("en-IN")}</td>
                         </tr>
@@ -736,323 +954,5 @@ export function CreatePolicyForm({
         </section>
       )}
     </div>
-  );
-}
-
-/* ─── traveller card sub-component ─── */
-
-function TravellerCard({
-  traveller: t,
-  index,
-  plans,
-  canRemove,
-  onUpdate,
-  onSelectPlan,
-  onRemove,
-  onPassportBlur,
-}: {
-  traveller: TravellerDraft;
-  index: number;
-  plans: ApiPlan[];
-  canRemove: boolean;
-  onUpdate: (field: keyof TravellerDraft, value: string) => void;
-  onSelectPlan: (planId: string) => void;
-  onRemove: () => void;
-  onPassportBlur: () => void;
-}) {
-  const age = computeAge(t.dateOfBirth);
-
-  return (
-    <article className="traveller-entry-card">
-      <div className="traveller-entry-card__header">
-        <div className="traveller-title-row">
-          <span className="traveller-index-pill">{index + 1}</span>
-          <div>
-            <p className="portal-eyebrow">TRAVELLER {index + 1}</p>
-            <h4>{t.travellerName || "New traveller"}</h4>
-          </div>
-        </div>
-        <div className="traveller-meta-row">
-          {t.lookupStatus === "found" && (
-            <span className="status-pill status-active">Autofilled</span>
-          )}
-          {t.lookupStatus === "checking" && (
-            <span className="status-pill status-draft">Checking...</span>
-          )}
-          {canRemove && (
-            <button
-              className="inline-action-button"
-              type="button"
-              onClick={onRemove}
-            >
-              Remove
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Identity</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Passport Number *</span>
-            <div className="passport-row">
-              <input
-                value={t.passportNumber}
-                placeholder="Enter passport number"
-                onChange={(e) =>
-                  onUpdate("passportNumber", e.target.value.toUpperCase())
-                }
-                onBlur={onPassportBlur}
-              />
-            </div>
-          </label>
-          <label>
-            <span>Name *</span>
-            <input
-              value={t.travellerName}
-              onChange={(e) => onUpdate("travellerName", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Gender *</span>
-            <select
-              value={t.gender}
-              onChange={(e) => onUpdate("gender", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </label>
-          <label>
-            <span>Date of Birth *</span>
-            <input
-              type="date"
-              value={t.dateOfBirth}
-              onChange={(e) => onUpdate("dateOfBirth", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Age</span>
-            <input
-              type="text"
-              value={age != null ? `${age} years` : "—"}
-              readOnly
-              className="input-readonly"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Contact</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Email *</span>
-            <input
-              type="email"
-              value={t.email}
-              onChange={(e) => onUpdate("email", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Mobile *</span>
-            <input
-              value={t.mobile}
-              onChange={(e) => onUpdate("mobile", e.target.value)}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Address</h5>
-        <div className="traveller-card-grid">
-          <label className="span-full">
-            <span>Address *</span>
-            <input
-              value={t.address}
-              onChange={(e) => onUpdate("address", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Pincode *</span>
-            <input
-              value={t.pincode}
-              onChange={(e) => onUpdate("pincode", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>City *</span>
-            <input
-              value={t.city}
-              onChange={(e) => onUpdate("city", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>District *</span>
-            <input
-              value={t.district}
-              onChange={(e) => onUpdate("district", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>State *</span>
-            <input
-              value={t.state}
-              onChange={(e) => onUpdate("state", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Country *</span>
-            <select
-              value={t.country}
-              onChange={(e) => onUpdate("country", e.target.value)}
-            >
-              <option value="">Select country</option>
-              {ALL_COUNTRIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Nominee</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Nominee Name *</span>
-            <input
-              value={t.nominee}
-              onChange={(e) => onUpdate("nominee", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Relationship *</span>
-            <select
-              value={t.nomineeRelationship}
-              onChange={(e) => onUpdate("nomineeRelationship", e.target.value)}
-            >
-              <option value="">Select</option>
-              {NOMINEE_RELATIONSHIPS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Emergency Contact</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Contact Person</span>
-            <input
-              value={t.emergencyContactPerson}
-              onChange={(e) =>
-                onUpdate("emergencyContactPerson", e.target.value)
-              }
-            />
-          </label>
-          <label>
-            <span>Contact Number</span>
-            <input
-              value={t.emergencyContactNumber}
-              onChange={(e) =>
-                onUpdate("emergencyContactNumber", e.target.value)
-              }
-            />
-          </label>
-          <label>
-            <span>Contact Email</span>
-            <input
-              type="email"
-              value={t.emergencyEmail}
-              onChange={(e) => onUpdate("emergencyEmail", e.target.value)}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Other Details</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Past Illness</span>
-            <input
-              value={t.pastIllness}
-              onChange={(e) => onUpdate("pastIllness", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Remarks</span>
-            <input
-              value={t.remarks}
-              onChange={(e) => onUpdate("remarks", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>CR Reference Number</span>
-            <input
-              value={t.crReferenceNumber}
-              onChange={(e) => onUpdate("crReferenceNumber", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>GST Number</span>
-            <input
-              value={t.gstNumber}
-              onChange={(e) => onUpdate("gstNumber", e.target.value)}
-            />
-          </label>
-          <label>
-            <span>GST State</span>
-            <input
-              value={t.gstState}
-              onChange={(e) => onUpdate("gstState", e.target.value)}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="wizard-field-group">
-        <h5 className="wizard-field-group__label">Plan & Premium</h5>
-        <div className="traveller-card-grid">
-          <label>
-            <span>Plan</span>
-            <select
-              value={t.planId}
-              onChange={(e) => onSelectPlan(e.target.value)}
-            >
-              <option value="">Select plan</option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — ₹ {Number(p.premiumAmount).toLocaleString("en-IN")}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Premium</span>
-            <input
-              type="text"
-              value={
-                t.premiumAmount > 0
-                  ? `₹ ${t.premiumAmount.toLocaleString("en-IN")}`
-                  : "—"
-              }
-              readOnly
-              className="input-readonly"
-            />
-          </label>
-        </div>
-      </div>
-    </article>
   );
 }

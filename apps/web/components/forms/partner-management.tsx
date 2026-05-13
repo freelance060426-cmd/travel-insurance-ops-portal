@@ -1,49 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ApiPartner } from "@/lib/api";
 import { createPartner, createUser } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
+import {
+  partnerSchema,
+  partnerLoginSchema,
+  type PartnerFormValues,
+  type PartnerLoginFormValues,
+} from "@/lib/schemas";
 
 const BANK_ACCOUNT_TYPES = ["Savings", "Current", "OD", "CC", "NRE", "NRO"];
-
-type PartnerDraft = {
-  partnerCode: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  gstNumber: string;
-  panNumber: string;
-  bankName: string;
-  bankAddress: string;
-  bankAccountType: string;
-  bankAccountNumber: string;
-  bankSwiftCode: string;
-  ifscCode: string;
-  micrCode: string;
-  companyNameForInvoice: string;
-};
-
-const initialDraft: PartnerDraft = {
-  partnerCode: "",
-  name: "",
-  contactName: "",
-  email: "",
-  phone: "",
-  gstNumber: "",
-  panNumber: "",
-  bankName: "",
-  bankAddress: "",
-  bankAccountType: "",
-  bankAccountNumber: "",
-  bankSwiftCode: "",
-  ifscCode: "",
-  micrCode: "",
-  companyNameForInvoice: "",
-};
 
 export function PartnerManagement({
   initialPartners,
@@ -52,11 +24,6 @@ export function PartnerManagement({
 }) {
   const router = useRouter();
   const { token } = useAuth();
-  const [draft, setDraft] = useState<PartnerDraft>({
-    ...initialDraft,
-    partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
-  });
-  const [pending, setPending] = useState(false);
 
   const activeCount = useMemo(
     () =>
@@ -64,20 +31,53 @@ export function PartnerManagement({
     [initialPartners],
   );
 
-  function updateDraft(field: keyof PartnerDraft, value: string) {
-    setDraft((current) => ({ ...current, [field]: value }));
-  }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PartnerFormValues>({
+    resolver: zodResolver(partnerSchema),
+    defaultValues: {
+      partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
+      name: "",
+      contactName: "",
+      email: "",
+      phone: "",
+      gstNumber: "",
+      panNumber: "",
+      bankName: "",
+      bankAddress: "",
+      bankAccountType: "",
+      bankAccountNumber: "",
+      bankSwiftCode: "",
+      ifscCode: "",
+      micrCode: "",
+      companyNameForInvoice: "",
+    },
+  });
 
-  async function handleCreatePartner() {
-    setPending(true);
+  const onSubmit = handleSubmit(async (values) => {
     const toastId = toast.loading("Saving partner...");
-
     try {
-      const created = await createPartner(draft, token ?? undefined);
+      const created = await createPartner(values, token ?? undefined);
       toast.success(`Partner ${created.name} created.`, { id: toastId });
-      setDraft({
-        ...initialDraft,
+      reset({
         partnerCode: `P-${String(initialPartners.length + 2).padStart(3, "0")}`,
+        name: "",
+        contactName: "",
+        email: "",
+        phone: "",
+        gstNumber: "",
+        panNumber: "",
+        bankName: "",
+        bankAddress: "",
+        bankAccountType: "",
+        bankAccountNumber: "",
+        bankSwiftCode: "",
+        ifscCode: "",
+        micrCode: "",
+        companyNameForInvoice: "",
       });
       router.refresh();
     } catch (error) {
@@ -85,10 +85,8 @@ export function PartnerManagement({
         error instanceof Error ? error.message : "Failed to create partner.",
         { id: toastId },
       );
-    } finally {
-      setPending(false);
     }
-  }
+  });
 
   return (
     <div className="page-stack">
@@ -132,103 +130,85 @@ export function PartnerManagement({
         </div>
 
         <div className="partner-form-sections">
-          <div className="partner-form-section">
-            <h4 className="partner-section-label">Basic Details</h4>
+          <div className="wizard-field-group">
+            <h5 className="wizard-field-group__label">Basic Details</h5>
             <div className="form-grid form-grid--invoice">
-              <label>
+              <label className={errors.partnerCode ? "has-error" : ""}>
                 <span>Partner Code *</span>
                 <input
-                  value={draft.partnerCode}
-                  onChange={(event) =>
-                    updateDraft("partnerCode", event.target.value)
-                  }
+                  {...register("partnerCode")}
+                  className={errors.partnerCode ? "input-invalid" : ""}
                 />
+                {errors.partnerCode && (
+                  <p className="field-error">{errors.partnerCode.message}</p>
+                )}
               </label>
-              <label>
+              <label className={errors.name ? "has-error" : ""}>
                 <span>Partner Name *</span>
                 <input
-                  value={draft.name}
-                  onChange={(event) => updateDraft("name", event.target.value)}
+                  {...register("name")}
+                  className={errors.name ? "input-invalid" : ""}
                 />
+                {errors.name && (
+                  <p className="field-error">{errors.name.message}</p>
+                )}
               </label>
               <label>
                 <span>Contact Name</span>
-                <input
-                  value={draft.contactName}
-                  onChange={(event) =>
-                    updateDraft("contactName", event.target.value)
-                  }
-                />
+                <input {...register("contactName")} />
               </label>
-              <label>
+              <label className={errors.email ? "has-error" : ""}>
                 <span>Email</span>
                 <input
                   type="email"
-                  value={draft.email}
-                  onChange={(event) => updateDraft("email", event.target.value)}
+                  {...register("email")}
+                  className={errors.email ? "input-invalid" : ""}
                 />
+                {errors.email && (
+                  <p className="field-error">{errors.email.message}</p>
+                )}
               </label>
               <label>
                 <span>Phone</span>
-                <input
-                  value={draft.phone}
-                  onChange={(event) => updateDraft("phone", event.target.value)}
-                />
+                <input {...register("phone")} />
               </label>
               <label>
                 <span>GST Number</span>
                 <input
-                  value={draft.gstNumber}
+                  {...register("gstNumber")}
                   placeholder="e.g. 06AAGFU7535C1Z8"
-                  onChange={(event) =>
-                    updateDraft("gstNumber", event.target.value.toUpperCase())
+                  onChange={(e) =>
+                    (e.target.value = e.target.value.toUpperCase())
                   }
                 />
               </label>
               <label>
                 <span>PAN Number</span>
                 <input
-                  value={draft.panNumber}
+                  {...register("panNumber")}
                   placeholder="e.g. AAGFU7535C"
-                  onChange={(event) =>
-                    updateDraft("panNumber", event.target.value.toUpperCase())
+                  onChange={(e) =>
+                    (e.target.value = e.target.value.toUpperCase())
                   }
                 />
               </label>
             </div>
           </div>
 
-          <hr className="partner-section-divider" />
-
-          <div className="partner-form-section">
-            <h4 className="partner-section-label">Banking Details</h4>
+          <div className="wizard-field-group">
+            <h5 className="wizard-field-group__label">Banking Details</h5>
             <div className="form-grid form-grid--invoice">
               <label>
                 <span>Bank Name</span>
-                <input
-                  value={draft.bankName}
-                  onChange={(event) =>
-                    updateDraft("bankName", event.target.value)
-                  }
-                />
+                <input {...register("bankName")} />
               </label>
               <label>
                 <span>Bank Address</span>
-                <input
-                  value={draft.bankAddress}
-                  onChange={(event) =>
-                    updateDraft("bankAddress", event.target.value)
-                  }
-                />
+                <input {...register("bankAddress")} />
               </label>
               <label>
                 <span>Bank Account Type</span>
-                <select
-                  value={draft.bankAccountType}
-                  onChange={(event) =>
-                    updateDraft("bankAccountType", event.target.value)
-                  }
-                >
+                <select {...register("bankAccountType")}>
                   <option value="">Select Account Type</option>
                   {BANK_ACCOUNT_TYPES.map((type) => (
                     <option key={type} value={type}>
@@ -239,51 +219,35 @@ export function PartnerManagement({
               </label>
               <label>
                 <span>Bank Account Number</span>
-                <input
-                  value={draft.bankAccountNumber}
-                  onChange={(event) =>
-                    updateDraft("bankAccountNumber", event.target.value)
-                  }
-                />
+                <input {...register("bankAccountNumber")} />
               </label>
               <label>
                 <span>Bank SWIFT Code</span>
                 <input
-                  value={draft.bankSwiftCode}
-                  onChange={(event) =>
-                    updateDraft(
-                      "bankSwiftCode",
-                      event.target.value.toUpperCase(),
-                    )
+                  {...register("bankSwiftCode")}
+                  onChange={(e) =>
+                    (e.target.value = e.target.value.toUpperCase())
                   }
                 />
               </label>
               <label>
                 <span>IFSC Code</span>
                 <input
-                  value={draft.ifscCode}
-                  onChange={(event) =>
-                    updateDraft("ifscCode", event.target.value.toUpperCase())
+                  {...register("ifscCode")}
+                  onChange={(e) =>
+                    (e.target.value = e.target.value.toUpperCase())
                   }
                 />
               </label>
               <label>
                 <span>MICR Code</span>
-                <input
-                  value={draft.micrCode}
-                  onChange={(event) =>
-                    updateDraft("micrCode", event.target.value)
-                  }
-                />
+                <input {...register("micrCode")} />
               </label>
               <label>
                 <span>Company Name For Invoice</span>
                 <input
-                  value={draft.companyNameForInvoice}
+                  {...register("companyNameForInvoice")}
                   placeholder="e.g. Proprietorship"
-                  onChange={(event) =>
-                    updateDraft("companyNameForInvoice", event.target.value)
-                  }
                 />
               </label>
             </div>
@@ -295,9 +259,22 @@ export function PartnerManagement({
             className="ghost-button"
             type="button"
             onClick={() =>
-              setDraft({
-                ...initialDraft,
+              reset({
                 partnerCode: `P-${String(initialPartners.length + 1).padStart(3, "0")}`,
+                name: "",
+                contactName: "",
+                email: "",
+                phone: "",
+                gstNumber: "",
+                panNumber: "",
+                bankName: "",
+                bankAddress: "",
+                bankAccountType: "",
+                bankAccountNumber: "",
+                bankSwiftCode: "",
+                ifscCode: "",
+                micrCode: "",
+                companyNameForInvoice: "",
               })
             }
           >
@@ -306,10 +283,10 @@ export function PartnerManagement({
           <button
             className="primary-button"
             type="button"
-            onClick={handleCreatePartner}
-            disabled={pending}
+            onClick={onSubmit}
+            disabled={isSubmitting}
           >
-            {pending ? "Saving..." : "Create Partner"}
+            {isSubmitting ? "Saving..." : "Create Partner"}
           </button>
         </div>
       </section>
@@ -369,52 +346,41 @@ export function PartnerManagement({
 
 function PartnerLoginSection({ partners }: { partners: ApiPartner[] }) {
   const { token } = useAuth();
-  const [loginDraft, setLoginDraft] = useState({
-    partnerId: "",
-    email: "",
-    password: "",
-    name: "",
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<PartnerLoginFormValues>({
+    resolver: zodResolver(partnerLoginSchema),
+    defaultValues: { partnerId: "", name: "", email: "", password: "" },
   });
-  const [loginPending, setLoginPending] = useState(false);
 
-  async function handleCreateLogin() {
-    if (
-      !loginDraft.partnerId ||
-      !loginDraft.email ||
-      !loginDraft.password ||
-      !loginDraft.name
-    ) {
-      toast.error("All fields are required to create a partner login.");
-      return;
-    }
-
-    setLoginPending(true);
+  const onSubmit = handleSubmit(async (values) => {
     const toastId = toast.loading("Creating partner login...");
-
     try {
       const created = await createUser(
         {
-          email: loginDraft.email,
-          password: loginDraft.password,
-          name: loginDraft.name,
+          email: values.email,
+          password: values.password,
+          name: values.name,
           role: "PARTNER",
-          partnerId: loginDraft.partnerId,
+          partnerId: values.partnerId,
         },
         token ?? undefined,
       );
       toast.success(`Login created for ${created.name} (${created.email}).`, {
         id: toastId,
       });
-      setLoginDraft({ partnerId: "", email: "", password: "", name: "" });
+      reset();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to create login.",
         { id: toastId },
       );
-    } finally {
-      setLoginPending(false);
     }
-  }
+  });
 
   return (
     <section className="content-card">
@@ -430,13 +396,11 @@ function PartnerLoginSection({ partners }: { partners: ApiPartner[] }) {
       </div>
 
       <div className="form-grid form-grid--invoice">
-        <label>
+        <label className={errors.partnerId ? "has-error" : ""}>
           <span>Partner *</span>
           <select
-            value={loginDraft.partnerId}
-            onChange={(e) =>
-              setLoginDraft((d) => ({ ...d, partnerId: e.target.value }))
-            }
+            {...register("partnerId")}
+            className={errors.partnerId ? "input-invalid" : ""}
           >
             <option value="">Select partner</option>
             {partners
@@ -447,38 +411,42 @@ function PartnerLoginSection({ partners }: { partners: ApiPartner[] }) {
                 </option>
               ))}
           </select>
+          {errors.partnerId && (
+            <p className="field-error">{errors.partnerId.message}</p>
+          )}
         </label>
-        <label>
+        <label className={errors.name ? "has-error" : ""}>
           <span>Display Name *</span>
           <input
-            value={loginDraft.name}
+            {...register("name")}
             placeholder="e.g. Partner staff name"
-            onChange={(e) =>
-              setLoginDraft((d) => ({ ...d, name: e.target.value }))
-            }
+            className={errors.name ? "input-invalid" : ""}
           />
+          {errors.name && <p className="field-error">{errors.name.message}</p>}
         </label>
-        <label>
+        <label className={errors.email ? "has-error" : ""}>
           <span>Email (login) *</span>
           <input
             type="email"
-            value={loginDraft.email}
+            {...register("email")}
             placeholder="partner@example.com"
-            onChange={(e) =>
-              setLoginDraft((d) => ({ ...d, email: e.target.value }))
-            }
+            className={errors.email ? "input-invalid" : ""}
           />
+          {errors.email && (
+            <p className="field-error">{errors.email.message}</p>
+          )}
         </label>
-        <label>
+        <label className={errors.password ? "has-error" : ""}>
           <span>Password *</span>
           <input
             type="password"
-            value={loginDraft.password}
+            {...register("password")}
             placeholder="Initial password"
-            onChange={(e) =>
-              setLoginDraft((d) => ({ ...d, password: e.target.value }))
-            }
+            className={errors.password ? "input-invalid" : ""}
           />
+          {errors.password && (
+            <p className="field-error">{errors.password.message}</p>
+          )}
         </label>
       </div>
 
@@ -486,10 +454,10 @@ function PartnerLoginSection({ partners }: { partners: ApiPartner[] }) {
         <button
           className="primary-button"
           type="button"
-          onClick={handleCreateLogin}
-          disabled={loginPending}
+          onClick={onSubmit}
+          disabled={isSubmitting}
         >
-          {loginPending ? "Creating..." : "Create Partner Login"}
+          {isSubmitting ? "Creating..." : "Create Partner Login"}
         </button>
       </div>
     </section>

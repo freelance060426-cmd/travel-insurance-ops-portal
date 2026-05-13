@@ -3,21 +3,10 @@ import { PolicyExportButton } from "@/components/forms/policy-export-button";
 import { fetchPartners, fetchPolicies } from "@/lib/api";
 import type { ApiPartner } from "@/lib/api";
 import { getServerAuthToken, decodeTokenPayload } from "@/lib/server-auth";
+import { formatDDMMYYYY, calcTripDays } from "@/lib/format";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
-}
-
-function formatTravelWindow(startDate: string, endDate: string) {
-  const start = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(startDate));
-  const end = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(endDate));
-  return `${start} - ${end}`;
 }
 
 export default async function PoliciesPage({
@@ -43,6 +32,7 @@ export default async function PoliciesPage({
     partner: string;
     startDate: string;
     endDate: string;
+    tripDays: number;
     insurerName: string;
     status: string;
     traveller: string;
@@ -66,8 +56,9 @@ export default async function PoliciesPage({
         policyNumber: policy.policyNumber,
         issueDate: formatDate(policy.issueDate),
         partner: policy.partner.name,
-        startDate: formatDate(policy.startDate),
-        endDate: formatDate(policy.endDate),
+        startDate: formatDDMMYYYY(policy.startDate),
+        endDate: formatDDMMYYYY(policy.endDate),
+        tripDays: calcTripDays(policy.startDate, policy.endDate),
         insurerName: policy.insurerName ?? "—",
         status: policy.status,
         traveller: policy.primaryTravellerName,
@@ -191,6 +182,7 @@ export default async function PoliciesPage({
                 <th>Partner</th>
                 <th>Start Date</th>
                 <th>End Date</th>
+                <th>Days</th>
                 <th>Insurer</th>
                 <th>Status</th>
                 <th>Traveller</th>
@@ -212,6 +204,7 @@ export default async function PoliciesPage({
                   <td>{policy.partner}</td>
                   <td>{policy.startDate}</td>
                   <td>{policy.endDate}</td>
+                  <td>{policy.tripDays}</td>
                   <td>{policy.insurerName}</td>
                   <td>
                     <span

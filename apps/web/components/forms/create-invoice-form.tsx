@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ApiEligibleInvoicePolicy, ApiPartner } from "@/lib/api";
 import { createInvoice } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
+import { invoiceSchema, type InvoiceFormValues } from "@/lib/schemas";
 
 export function CreateInvoiceForm({
   initialPartners,
@@ -16,21 +19,24 @@ export function CreateInvoiceForm({
 }) {
   const router = useRouter();
   const { token } = useAuth();
-  const [invoiceNumber, setInvoiceNumber] = useState(
-    `INV-${String(Date.now()).slice(-8)}`,
-  );
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceSchema),
+    defaultValues: {
+      invoiceNumber: `INV-${String(Date.now()).slice(-8)}`,
+      invoiceDate: new Date().toISOString().slice(0, 10),
+      partnerId: initialPolicies[0]?.partner.id ?? initialPartners[0]?.id ?? "",
+      status: "READY",
+      note: "Invoice generated from eligible policy records.",
+    },
+  });
+
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>(
     initialPolicies[0] ? [initialPolicies[0].id] : [],
-  );
-  const [partnerId, setPartnerId] = useState(
-    initialPolicies[0]?.partner.id ?? initialPartners[0]?.id ?? "",
-  );
-  const [invoiceDate, setInvoiceDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
-  const [status, setStatus] = useState("READY");
-  const [note, setNote] = useState(
-    "Invoice generated from eligible policy records.",
   );
   const [pending, setPending] = useState(false);
 
@@ -48,18 +54,13 @@ export function CreateInvoiceForm({
     [selectedPolicies],
   );
 
-  const selectedPartner = useMemo(
-    () => initialPartners.find((partner) => partner.id === partnerId),
-    [initialPartners, partnerId],
-  );
-
   function togglePolicy(id: string) {
     setSelectedPolicyIds((cur) =>
       cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
     );
   }
 
-  async function handleCreateInvoice() {
+  const onSubmit = handleSubmit(async (values) => {
     if (selectedPolicyIds.length === 0) {
       toast.error("Select at least one eligible policy.");
       return;
@@ -71,13 +72,13 @@ export function CreateInvoiceForm({
     try {
       const created = await createInvoice(
         {
-          invoiceNumber,
+          invoiceNumber: values.invoiceNumber,
           policyIds: selectedPolicyIds,
-          partnerId,
-          invoiceDate,
+          partnerId: values.partnerId,
+          invoiceDate: values.invoiceDate,
           amount: totalAmount,
-          status,
-          note,
+          status: values.status,
+          note: values.note,
         },
         token ?? undefined,
       );
@@ -94,7 +95,7 @@ export function CreateInvoiceForm({
       );
       setPending(false);
     }
-  }
+  });
 
   return (
     <div className="page-stack">
@@ -116,12 +117,15 @@ export function CreateInvoiceForm({
           </div>
 
           <div className="form-grid form-grid--invoice">
-            <label>
+            <label className={errors.invoiceNumber ? "has-error" : ""}>
               <span>Invoice Number</span>
               <input
-                value={invoiceNumber}
-                onChange={(event) => setInvoiceNumber(event.target.value)}
+                {...register("invoiceNumber")}
+                className={errors.invoiceNumber ? "input-invalid" : ""}
               />
+              {errors.invoiceNumber && (
+                <p className="field-error">{errors.invoiceNumber.message}</p>
+              )}
             </label>
             <label>
               <span>Linked Policies ({selectedPolicyIds.length} selected)</span>
@@ -159,9 +163,6 @@ export function CreateInvoiceForm({
                             checked={selectedPolicyIds.includes(policy.id)}
                             onChange={() => {
                               togglePolicy(policy.id);
-                              if (!partnerId && policy.partner?.id) {
-                                setPartnerId(policy.partner.id);
-                              }
                             }}
                           />
                         </td>
@@ -179,11 +180,11 @@ export function CreateInvoiceForm({
                 </table>
               </div>
             </label>
-            <label>
+            <label className={errors.partnerId ? "has-error" : ""}>
               <span>Partner</span>
               <select
-                value={partnerId}
-                onChange={(event) => setPartnerId(event.target.value)}
+                {...register("partnerId")}
+                className={errors.partnerId ? "input-invalid" : ""}
               >
                 {initialPartners.map((partner) => (
                   <option key={partner.id} value={partner.id}>
@@ -191,14 +192,20 @@ export function CreateInvoiceForm({
                   </option>
                 ))}
               </select>
+              {errors.partnerId && (
+                <p className="field-error">{errors.partnerId.message}</p>
+              )}
             </label>
-            <label>
+            <label className={errors.invoiceDate ? "has-error" : ""}>
               <span>Invoice Date</span>
               <input
                 type="date"
-                value={invoiceDate}
-                onChange={(event) => setInvoiceDate(event.target.value)}
+                {...register("invoiceDate")}
+                className={errors.invoiceDate ? "input-invalid" : ""}
               />
+              {errors.invoiceDate && (
+                <p className="field-error">{errors.invoiceDate.message}</p>
+              )}
             </label>
             <label>
               <span>Amount</span>
@@ -210,10 +217,7 @@ export function CreateInvoiceForm({
             </label>
             <label>
               <span>Status</span>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-              >
+              <select {...register("status")}>
                 <option value="READY">Ready</option>
                 <option value="DRAFT">Draft</option>
                 <option value="SENT">Sent</option>
@@ -223,11 +227,7 @@ export function CreateInvoiceForm({
 
           <label className="invoice-notes">
             <span>Internal notes</span>
-            <textarea
-              rows={4}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
+            <textarea rows={4} {...register("note")} />
           </label>
         </section>
 
@@ -238,10 +238,6 @@ export function CreateInvoiceForm({
             <div>
               <span>Linked policies</span>
               <strong>{selectedPolicyIds.length} selected</strong>
-            </div>
-            <div>
-              <span>Partner</span>
-              <strong>{selectedPartner?.name ?? "Not selected"}</strong>
             </div>
             <div>
               <span>Amount</span>
@@ -266,7 +262,7 @@ export function CreateInvoiceForm({
         <button
           className="primary-button"
           type="button"
-          onClick={handleCreateInvoice}
+          onClick={onSubmit}
           disabled={pending}
         >
           {pending ? "Generating..." : "Generate invoice"}

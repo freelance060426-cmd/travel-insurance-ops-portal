@@ -5,21 +5,10 @@ import { PolicyEmailActions } from "@/components/forms/policy-email-actions";
 import { PdfActions } from "@/components/forms/pdf-actions";
 import { fetchPolicyById } from "@/lib/api";
 import { getServerAuthToken } from "@/lib/server-auth";
+import { formatDDMMYYYY, calcTripDays } from "@/lib/format";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-CA").format(new Date(value));
-}
-
-function formatTravelWindow(startDate: string, endDate: string) {
-  const start = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(startDate));
-  const end = new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-  }).format(new Date(endDate));
-  return `${start} - ${end}`;
 }
 
 export default async function PolicyDetailPage({
@@ -40,13 +29,14 @@ export default async function PolicyDetailPage({
       passport: apiPolicy.travellers[0]?.passportNumber ?? "N/A",
       partner: apiPolicy.partner.name,
       issueDate: formatDate(apiPolicy.issueDate),
-      travelWindow: formatTravelWindow(apiPolicy.startDate, apiPolicy.endDate),
-      startDate: formatDate(apiPolicy.startDate),
-      endDate: formatDate(apiPolicy.endDate),
+      startDate: formatDDMMYYYY(apiPolicy.startDate),
+      endDate: formatDDMMYYYY(apiPolicy.endDate),
+      tripDays:
+        apiPolicy.tripDays ??
+        calcTripDays(apiPolicy.startDate, apiPolicy.endDate),
       status: apiPolicy.status,
       travelRegion: apiPolicy.travelRegion ?? null,
       destination: apiPolicy.destination ?? null,
-      tripDays: apiPolicy.tripDays ?? null,
       premium:
         apiPolicy.premiumAmount !== null &&
         apiPolicy.premiumAmount !== undefined
@@ -65,7 +55,9 @@ export default async function PolicyDetailPage({
         passport: traveller.passportNumber,
         gender: traveller.gender ?? "",
         dateOfBirth: traveller.dateOfBirth
-          ? new Date(traveller.dateOfBirth).toISOString().slice(0, 10)
+          ? formatDDMMYYYY(
+              new Date(traveller.dateOfBirth).toISOString().slice(0, 10),
+            )
           : "",
         email: traveller.email ?? "",
         mobile: traveller.mobile ?? "",
@@ -131,8 +123,16 @@ export default async function PolicyDetailPage({
               <strong>{policy.issueDate}</strong>
             </div>
             <div>
-              <span>Travel window</span>
-              <strong>{policy.travelWindow}</strong>
+              <span>Start date</span>
+              <strong>{policy.startDate}</strong>
+            </div>
+            <div>
+              <span>End date</span>
+              <strong>{policy.endDate}</strong>
+            </div>
+            <div>
+              <span>Trip days</span>
+              <strong>{policy.tripDays}</strong>
             </div>
             <div>
               <span>Total premium</span>
@@ -148,12 +148,6 @@ export default async function PolicyDetailPage({
               <div>
                 <span>Destination</span>
                 <strong>{policy.destination}</strong>
-              </div>
-            )}
-            {policy.tripDays !== null && (
-              <div>
-                <span>Trip days</span>
-                <strong>{policy.tripDays}</strong>
               </div>
             )}
           </div>
