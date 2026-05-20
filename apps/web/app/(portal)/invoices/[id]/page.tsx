@@ -49,17 +49,17 @@ export default async function InvoiceDetailPage({
 
   return (
     <div className="page-stack">
-      <section className="hero-panel hero-panel--brand">
+      <section className="page-compact-header">
         <div>
           <p className="portal-eyebrow">INVOICE</p>
-          <h1>{invoice.invoiceNumber}</h1>
-          <p className="hero-panel__text">
+          <h2>{invoice.invoiceNumber}</h2>
+          <span>
             {invoice.partner} · {invoice.policyNumbers} · {invoice.invoiceDate}{" "}
             · {invoice.amount}
-          </p>
+          </span>
         </div>
 
-        <div className="hero-panel__meta">
+        <div className="action-button-row">
           <span
             className={`status-pill status-${invoice.status.toLowerCase()}`}
           >

@@ -99,14 +99,6 @@ export function CreateInvoiceForm({
 
   return (
     <div className="page-stack">
-      <section className="content-card">
-        <p className="portal-eyebrow">CREATE INVOICE</p>
-        <h1 className="page-title">Generate invoice from eligible policies</h1>
-        <p className="page-subtitle">
-          Select one or more eligible policies to include in this invoice.
-        </p>
-      </section>
-
       <div className="form-layout">
         <section className="content-card">
           <div className="section-heading">

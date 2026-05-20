@@ -336,19 +336,17 @@ export function EndorsePolicyForm({
 
   return (
     <div className="page-stack">
-      <section className="hero-panel">
+      <section className="page-compact-header">
         <div>
           <p className="portal-eyebrow">ENDORSE POLICY</p>
-          <h1>{policy.policyNumber}</h1>
-          <p className="hero-panel__text">
-            Edit travel dates, plan, and traveller details. Changes are tracked
-            and saved as an endorsement record.
-          </p>
+          <h2>{policy.policyNumber}</h2>
+          <span>{policy.partner}</span>
         </div>
 
-        <div className="hero-panel__meta">
-          <span className="portal-chip">Current status: {policy.status}</span>
-          <span className="portal-chip">Partner: {policy.partner}</span>
+        <div className="action-button-row">
+          <span className={`status-pill status-${policy.status.toLowerCase()}`}>
+            {policy.status}
+          </span>
         </div>
       </section>
 

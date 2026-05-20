@@ -88,11 +88,7 @@ export default async function PoliciesPage({
         <div className="section-heading">
           <div>
             <p className="portal-eyebrow">POLICY SEARCH</p>
-            <h1 className="page-title">Find and manage policy records</h1>
-            <p className="section-note">
-              Search by policy number, traveller, passport, or partner, then
-              open the record for endorsement, PDF, document, and email actions.
-            </p>
+            <h3>Find policy records</h3>
           </div>
 
           <Link className="primary-button" href="/policies/new">
@@ -103,10 +99,10 @@ export default async function PoliciesPage({
         <form className="filter-toolbar" action="/policies">
           <div className="filter-toolbar__fields">
             <label className="filter-field filter-field--wide">
-              <span>Policy / Passport / Traveller</span>
+              <span>Policy No.</span>
               <input
                 name="search"
-                placeholder="Search policy, passport, traveller, partner"
+                placeholder="Enter policy number"
                 defaultValue={selected.search}
               />
             </label>
@@ -149,7 +145,7 @@ export default async function PoliciesPage({
             </div>
             <div className="action-button-row">
               <button className="primary-button" type="submit">
-                Apply filters
+                Search
               </button>
               <Link className="ghost-button" href="/policies">
                 Clear
@@ -187,6 +183,7 @@ export default async function PoliciesPage({
                 <th>Status</th>
                 <th>Traveller</th>
                 <th>Premium</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -215,11 +212,33 @@ export default async function PoliciesPage({
                   </td>
                   <td>{policy.traveller}</td>
                   <td>{policy.premium}</td>
+                  <td>
+                    <div className="table-action-row">
+                      <Link
+                        className="table-action-link"
+                        href={`/policies/${policy.id}`}
+                      >
+                        View
+                      </Link>
+                      <Link
+                        className="table-action-link"
+                        href={`/policies/${policy.id}/endorse`}
+                      >
+                        Endorse
+                      </Link>
+                      <Link
+                        className="table-action-link"
+                        href={`/policies/${policy.id}#policy-email`}
+                      >
+                        Email
+                      </Link>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {!rows.length ? (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={11}>
                     <div className="data-empty-state">
                       <span>No matching policies</span>
                       <strong>No policies match the current filters.</strong>

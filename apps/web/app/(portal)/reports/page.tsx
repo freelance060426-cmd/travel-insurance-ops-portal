@@ -35,36 +35,17 @@ export default async function ReportsPage({
       caught instanceof Error ? caught.message : "Reports could not be loaded.";
   }
 
-  const totalPremium = partnerReport.reduce(
-    (sum, partner) => sum + partner.totalPremium,
-    0,
-  );
   const totalInvoices = partnerReport.reduce(
     (sum, partner) => sum + partner.invoiceCount,
+    0,
+  );
+  const totalPremium = partnerReport.reduce(
+    (sum, partner) => sum + partner.totalPremium,
     0,
   );
 
   return (
     <div className="page-stack">
-      <section className="hero-panel hero-panel--brand">
-        <div className="hero-panel__content">
-          <p className="portal-eyebrow">REPORTS</p>
-          <h1>Operational reports and CSV export</h1>
-          <p className="hero-panel__text">
-            Review policy activity by date and partner, then export the filtered
-            policy report for offline follow-up.
-          </p>
-        </div>
-        <div className="hero-panel__meta">
-          <span className="portal-chip portal-chip--strong">
-            {policyReport?.total ?? 0} policies
-          </span>
-          <span className="portal-chip">
-            ₹ {totalPremium.toLocaleString("en-IN")} premium
-          </span>
-        </div>
-      </section>
-
       <section className="metric-grid metric-grid--compact">
         <article className="metric-card tone-teal">
           <p>Total policies</p>
@@ -80,6 +61,11 @@ export default async function ReportsPage({
           <p>Invoice count</p>
           <strong>{totalInvoices}</strong>
           <span>Invoices linked to reported partners</span>
+        </article>
+        <article className="metric-card tone-rose">
+          <p>Total premium</p>
+          <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
+          <span>Premium across reported partners</span>
         </article>
       </section>
 

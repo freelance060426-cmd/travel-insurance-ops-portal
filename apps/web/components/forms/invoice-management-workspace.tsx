@@ -281,26 +281,6 @@ export function InvoiceManagementWorkspace({
 
   return (
     <div className="page-stack">
-      <section className="hero-panel hero-panel--brand">
-        <div className="hero-panel__content">
-          <p className="portal-eyebrow">INVOICE WORKSPACE</p>
-          <h1>Generate and dispatch invoices from eligible policy records</h1>
-          <p className="hero-panel__text">
-            Select policies without invoices, confirm generation rules, create
-            one invoice per policy, then download or send each invoice from the
-            dispatch list.
-          </p>
-        </div>
-
-        <div className="hero-panel__meta">
-          <span className="portal-chip portal-chip--strong">
-            {eligiblePolicies.length} eligible policies
-          </span>
-          <span className="portal-chip">{readyInvoices} ready invoices</span>
-          <span className="portal-chip">{sentInvoices} sent invoices</span>
-        </div>
-      </section>
-
       {isAdmin && (
         <section className="content-card invoice-generation-card">
           <div className="invoice-selection-panel">

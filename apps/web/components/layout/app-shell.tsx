@@ -54,49 +54,6 @@ const navigation = [
   },
 ];
 
-type ModuleContext = {
-  eyebrow: string;
-  title: string;
-  description: string;
-};
-
-const moduleCopy: Record<string, ModuleContext> = {
-  "/dashboard": {
-    eyebrow: "COMMAND CENTER",
-    title: "Daily operations control room",
-    description:
-      "Track policies, invoices, PDFs, and client dispatch from one workspace.",
-  },
-  "/partners": {
-    eyebrow: "NETWORK",
-    title: "Partner operations",
-    description: "Manage partner records and keep policy ownership clear.",
-  },
-  "/policies": {
-    eyebrow: "POLICY DESK",
-    title: "Policy search and servicing",
-    description:
-      "Find policies, inspect history, and continue service actions.",
-  },
-  "/policies/new": {
-    eyebrow: "NEW POLICY",
-    title: "Create travel policy",
-    description:
-      "Capture policy, traveller, and plan details through a guided flow.",
-  },
-  "/invoices": {
-    eyebrow: "BILLING DESK",
-    title: "Invoice generation and dispatch",
-    description:
-      "Generate, download, and send invoices from eligible policy records.",
-  },
-  "/reports": {
-    eyebrow: "REPORTING",
-    title: "Operational reports",
-    description: "Review policy activity and export CSV reports for follow-up.",
-  },
-};
-
 function isActiveRoute(pathname: string, href: string) {
   if (href === "/dashboard") {
     return pathname === href;
@@ -116,21 +73,10 @@ function isActiveRoute(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function getModuleCopy(pathname: string): ModuleContext {
-  if (pathname === "/policies/new") {
-    return moduleCopy["/policies/new"]!;
-  }
-
-  const match = navigation.find((item) => isActiveRoute(pathname, item.href));
-  return moduleCopy[match?.href ?? "/dashboard"] ?? moduleCopy["/dashboard"]!;
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const currentModule = getModuleCopy(pathname);
-  const isDashboard = pathname === "/dashboard";
 
   function handleLogout() {
     signOut();
@@ -150,8 +96,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="portal-brand__logo"
           />
           <div>
-            <p className="portal-eyebrow">COVER EDGE OPS</p>
-            <h1>Travel Insurance Portal</h1>
+            <p className="portal-eyebrow">Cover Edge</p>
+            <h1>Travel Insurance</h1>
           </div>
         </div>
 
@@ -208,16 +154,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="portal-main">
-        {!isDashboard && (
-          <header className="portal-topbar">
-            <div className="portal-topbar__copy">
-              <p className="portal-eyebrow">{currentModule.eyebrow}</p>
-              <h2>{currentModule.title}</h2>
-              <p>{currentModule.description}</p>
-            </div>
-          </header>
-        )}
-
         <main className="portal-content">{children}</main>
       </div>
     </div>

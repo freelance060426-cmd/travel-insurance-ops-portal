@@ -52,9 +52,6 @@ export default async function DashboardPage() {
           <h1 className="dash-header__greeting">
             {greeting()}, {userName}! 👋
           </h1>
-          <p className="dash-header__sub">
-            Here&apos;s what&apos;s happening with your operations today.
-          </p>
         </div>
 
         {/* Decorative flight trail */}

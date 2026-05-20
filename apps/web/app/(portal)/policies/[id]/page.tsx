@@ -80,16 +80,16 @@ export default async function PolicyDetailPage({
 
   return (
     <div className="page-stack">
-      <section className="hero-panel">
+      <section className="page-compact-header">
         <div>
           <p className="portal-eyebrow">POLICY DETAIL</p>
-          <h1>{policy.policyNumber}</h1>
-          <p className="hero-panel__text">
-            {policy.traveller} · {policy.partner} · {policy.issueDate}
-          </p>
+          <h2>{policy.policyNumber}</h2>
+          <span>
+            {policy.partner} · {policy.traveller} · {policy.issueDate}
+          </span>
         </div>
 
-        <div className="hero-panel__meta">
+        <div className="action-button-row">
           <span
             className={`status-pill status-${policy.status.toLowerCase().replace(/\s+/g, "-")}`}
           >
@@ -162,7 +162,7 @@ export default async function PolicyDetailPage({
           </div>
 
           <PdfActions entityType="policy" entityId={policy.id} />
-          <div style={{ marginTop: 14 }}>
+          <div id="policy-email" style={{ marginTop: 14 }}>
             <PolicyEmailActions
               policyId={policy.id}
               policyNumber={policy.policyNumber}

@@ -574,30 +574,6 @@ export function CreatePolicyForm({
 
   return (
     <div className="page-stack">
-      <section className="content-card policy-intro-card">
-        <div className="policy-intro-card__copy">
-          <p className="portal-eyebrow">NEW POLICY</p>
-          <h1 className="page-title">Create travel policy</h1>
-          <p className="page-subtitle">
-            Capture trip, traveller, and plan details through a guided flow.
-          </p>
-        </div>
-        <div className="policy-intro-card__meta">
-          <div>
-            <span>Partner</span>
-            <strong>{selectedPartner?.name ?? "Not selected"}</strong>
-          </div>
-          <div>
-            <span>Travellers</span>
-            <strong>{travellers.length}</strong>
-          </div>
-          <div>
-            <span>Premium</span>
-            <strong>₹ {totalPremium.toLocaleString("en-IN")}</strong>
-          </div>
-        </div>
-      </section>
-
       <section className="workflow-stepper workflow-stepper--3">
         {stepsMeta.map((s, i) => {
           const num = i + 1;
@@ -649,6 +625,36 @@ export function CreatePolicyForm({
           </div>
 
           <div className="form-grid form-grid--policy-header">
+            {!isPartnerUser ? (
+              <label className={tripErrors.partnerId ? "has-error" : ""}>
+                <span>Partner *</span>
+                <select
+                  {...registerTrip("partnerId")}
+                  className={tripErrors.partnerId ? "input-invalid" : ""}
+                >
+                  <option value="">Select partner</option>
+                  {initialPartners
+                    .filter((p) => p.status === "ACTIVE")
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.partnerCode})
+                      </option>
+                    ))}
+                </select>
+                {tripErrors.partnerId && (
+                  <p className="field-error">{tripErrors.partnerId.message}</p>
+                )}
+              </label>
+            ) : (
+              <label>
+                <span>Partner</span>
+                <input
+                  value={selectedPartner?.name ?? "Assigned partner"}
+                  readOnly
+                  className="input-readonly"
+                />
+              </label>
+            )}
             <label className={tripErrors.travelRegion ? "has-error" : ""}>
               <span>Travel Region</span>
               <select
@@ -695,27 +701,6 @@ export function CreatePolicyForm({
                 <p className="field-error">{tripErrors.destination.message}</p>
               )}
             </label>
-            {!isPartnerUser && (
-              <label className={tripErrors.partnerId ? "has-error" : ""}>
-                <span>Partner *</span>
-                <select
-                  {...registerTrip("partnerId")}
-                  className={tripErrors.partnerId ? "input-invalid" : ""}
-                >
-                  <option value="">Select partner</option>
-                  {initialPartners
-                    .filter((p) => p.status === "ACTIVE")
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.partnerCode})
-                      </option>
-                    ))}
-                </select>
-                {tripErrors.partnerId && (
-                  <p className="field-error">{tripErrors.partnerId.message}</p>
-                )}
-              </label>
-            )}
             <label className={tripErrors.startDate ? "has-error" : ""}>
               <span>Travel Start *</span>
               <input

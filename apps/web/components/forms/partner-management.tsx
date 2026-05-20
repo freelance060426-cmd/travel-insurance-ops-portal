@@ -94,11 +94,7 @@ export function PartnerManagement({
         <div className="section-heading">
           <div>
             <p className="portal-eyebrow">PARTNER MANAGEMENT</p>
-            <h1 className="page-title">Manage partners and lookup codes</h1>
-            <p className="page-subtitle">
-              Create and manage partner records with contact and banking details
-              for policy linkage and invoice generation.
-            </p>
+            <h3>Partners and lookup codes</h3>
           </div>
         </div>
 

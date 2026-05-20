@@ -25,6 +25,12 @@ export function PdfActions({
   const [pending, setPending] = useState(false);
 
   async function handleGetPdf(forceRegenerate = false) {
+    const shouldOpen = !forceRegenerate;
+    const popup = shouldOpen ? window.open("about:blank", "_blank") : null;
+    if (popup) {
+      popup.opener = null;
+    }
+
     setPending(true);
     const toastId = toast.loading(
       forceRegenerate ? "Regenerating PDF..." : "Fetching PDF...",
@@ -40,9 +46,18 @@ export function PdfActions({
             ? await regenerateInvoicePdf(entityId, token ?? undefined)
             : await getInvoicePdf(entityId, token ?? undefined);
 
-      setPdfUrl(buildApiAssetUrl(result.fileUrl));
+      const nextPdfUrl = buildApiAssetUrl(result.fileUrl);
+      setPdfUrl(nextPdfUrl);
+      if (shouldOpen && nextPdfUrl) {
+        if (popup) {
+          popup.location.href = nextPdfUrl;
+        } else {
+          window.open(nextPdfUrl, "_blank");
+        }
+      }
       toast.success(`PDF ready: ${result.fileName}`, { id: toastId });
     } catch (error) {
+      popup?.close();
       toast.error(
         error instanceof Error ? error.message : "PDF request failed.",
         { id: toastId },
