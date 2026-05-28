@@ -153,7 +153,7 @@ export default async function PolicyDetailPage({
           </div>
         </section>
 
-        <section className="content-card">
+        <section className="content-card" id="policy-pdf">
           <div className="section-heading">
             <div>
               <p className="portal-eyebrow">PDF & EMAIL</p>

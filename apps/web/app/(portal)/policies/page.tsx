@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PolicyExportButton } from "@/components/forms/policy-export-button";
+import { PolicyViewPdf } from "@/components/forms/policy-view-pdf";
 import { fetchPartners, fetchPolicies } from "@/lib/api";
 import type { ApiPartner } from "@/lib/api";
 import { getServerAuthToken, decodeTokenPayload } from "@/lib/server-auth";
@@ -214,12 +215,7 @@ export default async function PoliciesPage({
                   <td>{policy.premium}</td>
                   <td>
                     <div className="table-action-row">
-                      <Link
-                        className="table-action-link"
-                        href={`/policies/${policy.id}`}
-                      >
-                        View
-                      </Link>
+                      <PolicyViewPdf policyId={policy.id} />
                       <Link
                         className="table-action-link"
                         href={`/policies/${policy.id}/endorse`}
