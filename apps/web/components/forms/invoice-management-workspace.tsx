@@ -85,19 +85,19 @@ function InvoiceRowActions({
   return (
     <div className="table-action-stack">
       <div className="table-action-row invoice-row-actions">
-        <Link
+        {/* <Link
           href={`/invoices/${invoice.id}`}
           className="invoice-action-button invoice-action-button--view"
         >
           View
-        </Link>
+        </Link> */}
         <button
           className="invoice-action-button"
           type="button"
           onClick={handleDownload}
           disabled={pending}
         >
-          Download
+          View
         </button>
         <button
           className="invoice-action-button invoice-action-button--send"
