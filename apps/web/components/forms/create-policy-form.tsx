@@ -732,7 +732,11 @@ export function CreatePolicyForm({
                 placeholder="—"
                 onChange={(e) => {
                   const days = parseInt(e.target.value, 10);
-                  if (days > 0) updateTripDays(days);
+                  if (e.target.value.trim() === "") {
+                    setTripValue("endDate", "", { shouldValidate: true });
+                  } else if (days > 0) {
+                    updateTripDays(days);
+                  }
                 }}
               />
             </label>

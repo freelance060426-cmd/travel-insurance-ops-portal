@@ -454,7 +454,11 @@ export function EndorsePolicyForm({
               placeholder="—"
               onChange={(e) => {
                 const days = parseInt(e.target.value, 10);
-                if (days > 0) updateTripDays(days);
+                if (e.target.value.trim() === "") {
+                  setEndDate("");
+                } else if (days > 0) {
+                  updateTripDays(days);
+                }
               }}
             />
           </label>
